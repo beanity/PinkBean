@@ -1,0 +1,27 @@
+version: "3.7"
+
+services: 
+  app:
+    build: .
+    image: pinkbean
+    environment: 
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on: 
+      - db
+  # redis:
+  #   image: redis:alpine
+  #   volumes: 
+  #     - redis-data:/data
+  db:
+    image: postgres
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./scripts/pg_init:/docker-entrypoint-initdb.d
+    ports:
+      - "6543:5432"
+
+volumes:
+  redis_data:
+  db_data:

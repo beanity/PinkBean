@@ -1,0 +1,13 @@
+# Dependency directory
+node_modules
+
+# Ignore built ts files
+dist/**/*
+
+# Code editor
+.vscode
+
+# env files
+.*env*
+
+example
