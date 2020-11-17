@@ -4,11 +4,11 @@ import { DiscordData, Command, CommandExample } from "./base";
 
 export class Shuffle extends Command {
   constructor() {
-    super("shuffle", Color.MUSIC);
+    super("shuffle", Color.PURPLE);
   }
 
   public description() {
-    return "Shuffle queued songs if there are any.";
+    return "Shuffle queued songs in random order.";
   }
 
   public customExamples(): CommandExample[] {
@@ -24,7 +24,9 @@ export class Shuffle extends Command {
     const queue = guildMaster.get(discord.guild.id).queue;
     if (queue.empty) return;
     if (queue.size >= 3) {
-      D3Array.shuffle(queue.all, 1);
+      let start = 0;
+      if (discord.bot.voice.connection?.dispatcher) start = 1;
+      D3Array.shuffle(queue.songs, start);
     }
     discord.channel.send(this.embed().setDescription("Queue shuffled"));
   }

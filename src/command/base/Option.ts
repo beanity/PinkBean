@@ -95,8 +95,8 @@ export class Option {
    * Sets `enabled` to `true`.
    */
   public enable() {
-    if (this.mutexGroup) {
-      if (this.mutexGroup.enable(this)) this._enabled = true;
+    if (this.mutexGroup?.enable(this)) {
+      this._enabled = true;
       return;
     }
     this._enabled = true;

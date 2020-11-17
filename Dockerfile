@@ -1,4 +1,4 @@
-FROM node:lts-alpine
+FROM node:alpine AS base
 RUN apk update && apk upgrade && apk add --no-cache \
   git \
   python \
@@ -9,9 +9,20 @@ RUN apk update && apk upgrade && apk add --no-cache \
   automake \
   ffmpeg
 RUN npm install -g node-gyp
-WORKDIR /usr/src/app
-COPY package*.json ./
+
+FROM Base AS dev
+WORKDIR /usr/app
+COPY package* ./
+RUN npm install --production && cp -r node_modules /tmp/node_modules
 RUN npm install
 COPY . .
+RUN npm run clean
 RUN npm run build
+
+FROM Base AS prod
+WORKDIR /usr/app
+COPY --from=dev /usr/app/dist ./dist
+COPY --from=dev /tmp/node_modules ./node_modules
+COPY package* ./
+COPY .env* ./
 CMD [ "npm", "start"]

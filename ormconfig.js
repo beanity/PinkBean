@@ -2,11 +2,11 @@ const env = require("./dist/env").env;
 
 module.exports = {
   type: "postgres",
-  host: env.dbHost,
-  port: env.dbPort,
-  username: env.dbUser,
-  password: env.dbPassword,
-  database: env.dbName,
+  host: "localhost",
+  port: 6543,
+  username: env.db.user,
+  password: env.db.secret,
+  database: env.db.name,
   logging: "error",
   entities: ["dist/db/entity/**/*.js"],
   migrations: ["dist/db/migration/**/*.js"],

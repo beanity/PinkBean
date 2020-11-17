@@ -1,5 +1,5 @@
 import { Argument, Option } from ".";
-import { _, Color, Discord, Md, stringSimilarity } from "../../lib";
+import { _, Color, Discord, Md, numeral, stringSimilarity } from "../../lib";
 import { guildMaster } from "../../manager";
 import { Prefix } from "../../model";
 
@@ -64,7 +64,15 @@ export interface DiscordData {
   guild: Discord.Guild;
 }
 
+export interface JoinParam {
+  effects?: string[];
+  join?: string;
+  suffix?: string;
+  end?: string;
+}
+
 export abstract class Command {
+  public readonly adminOnly: boolean;
   public readonly aliases: string[];
   public readonly name: string;
   public color: number;
@@ -72,11 +80,12 @@ export abstract class Command {
   public options: Option[];
   public prefix: Prefix;
 
+  protected help: Option;
+
   private argDescriptions: string[];
   private cooldown: number;
   private customArg?: Argument;
   private examples: CommandExample[];
-  private help: Option;
   private invalidOpt: string;
   private longestOptionLength: number;
   private optionsMap: Map<string, Option>;
@@ -88,18 +97,23 @@ export abstract class Command {
     return this.prefix + this.invokedName;
   }
 
-  constructor(name: string, color = Color.MAPLE) {
+  get argument() {
+    return this.customArg;
+  }
+
+  constructor(name: string, color = Color.PINK, adminOnly = false) {
+    this.adminOnly = adminOnly;
     this.aliases = [name];
     this.name = name;
     this.color = color;
     this.invokedName = name;
     this.options = [];
-    this.prefix = new Prefix("");
+    this.prefix = new Prefix();
 
     this.cooldown = 0;
     this.argDescriptions = [];
     this.examples = [];
-    this.help = new Option("-h", "show usage info");
+    this.help = new Option("-h", "show command help");
     this.invalidOpt = "";
     this.longestOptionLength = 0;
     this.optionsMap = new Map();
@@ -121,12 +135,18 @@ export abstract class Command {
     this.parse(inputs);
 
     if (this.help.enabled) {
+      this.examples = this.customExamples();
       discord.channel.send(this.helpEmbed()).catch(console.error);
       return;
     }
 
     if (this.invalidOpt) {
       discord.channel.send(this.invalidOptionEmbed()).catch(console.error);
+      return;
+    }
+
+    if (this.adminOnly && !discord.member.hasPermission("ADMINISTRATOR")) {
+      discord.channel.send(this.adminOnlyEmbed()).catch(console.error);
       return;
     }
 
@@ -143,6 +163,13 @@ export abstract class Command {
     }
 
     await this.continue(discord);
+  }
+
+  public briefDescription() {
+    const description = this.description();
+    return !description.endsWith(".")
+      ? description
+      : description.substring(0, description.length - 1);
   }
 
   protected addCustomArg(arg: Argument) {
@@ -176,12 +203,29 @@ export abstract class Command {
     msg.delete({ timeout: timeoutMs }).catch(console.error);
   }
 
+  protected formatNum(num: any, format = "0,0") {
+    return numeral(num).format(format);
+  }
+
+  protected filterAndJoin({
+    effects = [],
+    join = "",
+    suffix = "",
+    end = "",
+  }: JoinParam = {}) {
+    const filtered = effects.filter((v) => v);
+    const mapped = suffix ? filtered.map((v) => v + suffix) : filtered;
+    let joined = mapped.join(join);
+    if (joined && end) joined += end;
+    return joined;
+  }
+
   protected embed(color = this.color) {
     return new Discord.MessageEmbed().setColor(color);
   }
 
-  protected embedWithFooter(text: string, iconUrl?: string) {
-    return this.embed().setFooter(text, iconUrl);
+  protected noResultsEmbed() {
+    return this.embed().setDescription("No results found");
   }
 
   protected enableCooldown(ms = 1000) {
@@ -230,7 +274,7 @@ export abstract class Command {
   }
 
   private argInfo() {
-    if (!this.customArg) return "";
+    if (!this.customArg || !this.argDescriptions.length) return "";
     const info = `${Md.pre(this.customArg.name)} can be:\n`;
     return info + this.argDescriptions.join("\n") + "\n\n";
   }
@@ -239,11 +283,12 @@ export abstract class Command {
     return (
       this.usageInfo() +
       this.aliasInfo() +
+      (this.adminOnly ? "**(Admin and above only)**\n" : "") +
       this.description() +
       "\n\n" +
       this.argInfo() +
       this.optionsInfo() +
-      this.examplesInfo()
+      (this.examples.length ? "**Examples:**" : "")
     );
   }
 
@@ -258,20 +303,24 @@ export abstract class Command {
     );
   }
 
-  private examplesInfo() {
+  private examplesEmbedFields(): Discord.EmbedFieldData[] {
     this.examples = this.customExamples();
-    if (!this.examples.length) return "";
-    const infos = this.examples.map(
-      (v) =>
-        v.cmd
-          .split("||")
-          .map((e) => Md.pre(e.trim()))
-          .join(" or ") +
-        "\n" +
-        v.explain
-    );
-    infos.unshift(Md.bld("Examples:"));
-    return infos.join("\n\n");
+    return this.examples.map((example) => {
+      const cmd = example.cmd
+        .split("||")
+        .map((v) => Md.pre(v.trim()))
+        .join(" or ");
+      return {
+        name: cmd,
+        value: example.explain,
+      };
+    });
+  }
+
+  private adminOnlyEmbed() {
+    const embed = this.embed(Color.BLUE);
+    embed.setDescription(`${Md.pre(this.fullName)} is for administrators only`);
+    return embed;
   }
 
   private cooldownEmbed() {
@@ -281,14 +330,16 @@ export abstract class Command {
   }
 
   private helpEmbed() {
-    const helpEmbed = this.embed(Color.GENERAL);
-    helpEmbed.setTitle(`Usage Info`);
-    helpEmbed.setDescription(this.helpDescription());
-    return helpEmbed;
+    const embed = this.embed(Color.BLUE);
+    embed.setTitle(`Command Help`);
+    embed.setDescription(this.helpDescription());
+    embed.addFields(this.examplesEmbedFields());
+    return embed;
   }
 
   private invalidOptionEmbed() {
-    return this.embed().setDescription(
+    const embed = this.embed();
+    embed.setDescription(
       `The option ${Md.pre(
         _.truncate(this.invalidOpt)
       )} does not exist for command ${Md.pre(
@@ -299,6 +350,7 @@ export abstract class Command {
         ]).bestMatch.target
       )}?`
     );
+    return embed;
   }
 
   private optionsInfo() {
@@ -355,7 +407,7 @@ export abstract class Command {
     }
     if (this.customArg.rangeable) {
       this.argDescriptions.push(
-        "a range of numbers in the form `a..b`. Omit `a` to include the very beginning; omit `b` to include the very end"
+        "a range of indexes in the form `a..b`. Omit `a` to start at the very first item; omit `b` to end at the very last item"
       );
     }
   }
@@ -375,5 +427,5 @@ export abstract class Command {
   /**
    * Continue running the command after processing help.
    */
-  public abstract async continue(data: DiscordData): Promise<void>;
+  protected abstract async continue(data: DiscordData): Promise<void>;
 }

@@ -3,7 +3,7 @@ import { DiscordData, Command, CommandExample } from "./base";
 
 export class Pause extends Command {
   constructor() {
-    super("pause", Color.MUSIC);
+    super("pause", Color.PURPLE);
   }
 
   public async continue(data: DiscordData) {
@@ -15,14 +15,14 @@ export class Pause extends Command {
   }
 
   public description() {
-    return "Pause the current song.";
+    return "Pause current song.";
   }
 
   public customExamples(): CommandExample[] {
     return [
       {
         cmd: this.fullName,
-        explain: "pause the current song",
+        explain: "Pause current song",
       },
     ];
   }

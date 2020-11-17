@@ -45,12 +45,16 @@ const commands = [
   BotCommand.Shuffle,
   BotCommand.Current,
   BotCommand.Ping,
-  BotCommand.Daily,
-  BotCommand.Weekly,
-  BotCommand.Invasion,
   BotCommand.Time,
   BotCommand.Prefix,
   BotCommand.Sub,
+  BotCommand.Rank,
+  BotCommand.Item,
+  BotCommand.Mob,
+  BotCommand.News,
+  BotCommand.Invite,
+  BotCommand.Help,
+  BotCommand.About,
 ];
 commander.addCommands(...commands);
 

@@ -1,7 +1,16 @@
-import { Guild, Prefix } from "../model";
+import { Guild, Prefix, Song } from "../model";
+
+export interface SetParam {
+  prefix?: Prefix;
+  songs?: Song[];
+}
 
 class GuildMaster {
   private guildMap: Map<string, Guild>;
+
+  get guilds() {
+    return [...this.guildMap.values()];
+  }
 
   constructor() {
     this.guildMap = new Map();
@@ -11,18 +20,14 @@ class GuildMaster {
     return this.guildMap.has(guildId);
   }
 
-  public add(guild: Guild) {
-    this.guildMap.set(guild.id, guild);
-  }
-
-  public set(guildId: string, prefix?: Prefix) {
+  public set(guildId: string, { prefix, songs }: SetParam = {}) {
     const guild = this.get(guildId);
     if (prefix) guild.prefix = prefix;
-    this.guildMap.set(guildId, guild);
+    if (songs) guild.queue.songs = songs;
   }
 
   public delete(guildId: string) {
-    this.guildMap.delete(guildId);
+    return this.guildMap.delete(guildId);
   }
 
   /**
@@ -33,7 +38,7 @@ class GuildMaster {
     let guild = this.guildMap.get(guildId);
     if (!guild) {
       guild = new Guild(guildId);
-      this.add(guild);
+      this.guildMap.set(guildId, guild);
     }
     return guild;
   }

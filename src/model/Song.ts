@@ -1,7 +1,7 @@
-import { _, Md, Discord, moment, numeral } from "../lib";
-import { YtResolver } from "../youtube";
+import { _, Md, moment, numeral } from "../lib";
+import { Item, Item$Video, YT } from "../youtube";
 
-export interface SongSpecs {
+export interface Video {
   id: string;
   title: string;
   publishedAt: string;
@@ -11,7 +11,10 @@ export interface SongSpecs {
   duration: string;
   thumbnailUrl: string;
   viewCount: number | string;
-  requestor: Requestor;
+}
+
+export interface SongData extends Video {
+  requestorId: string;
   playlist?: Playlist;
 }
 
@@ -21,9 +24,14 @@ export interface Playlist {
   thumbnailUrl: string;
 }
 
-export interface Requestor {
-  id: string;
-  tag: string;
+export class Requestor {
+  public readonly id: string;
+  constructor(id: string) {
+    this.id = id;
+  }
+  public toString() {
+    return `<@${this.id}>`;
+  }
 }
 
 export enum SongDisplay {
@@ -45,32 +53,51 @@ const SEP = ` ${DOT} `;
 export const DURATION_TEMPLATE = "d:h:*m:ss";
 
 export class ItemFormatter {
-  public readonly item: YtResolver.Item;
-  public readonly allDisplays: SongDisplay[];
+  public readonly item: Item;
+  public readonly commonDisplays: SongDisplay[];
+
+  get channelUrl() {
+    return YT.getChannelUrl(this.item.channelId);
+  }
+
+  get channelNamedlink() {
+    return Md.nl(this.item.channelTitle, this.channelUrl);
+  }
 
   get duration() {
-    if (!YtResolver.isVideoItem(this.item)) return "";
+    if (!YT.isVideoItem(this.item)) return "";
     return this.item.isLive
       ? "**Live Now**"
       : moment.duration(this.item.duration).format(DURATION_TEMPLATE);
   }
 
   get viewCount() {
-    if (!YtResolver.isVideoItem(this.item) || !this.item.viewCount) return "";
+    if (!YT.isVideoItem(this.item) || !this.item.viewCount) return "";
     let formattedCount = numeral(this.item.viewCount).format("0a");
-    if (formattedCount.length <= 2)
+    if (`${this.item.viewCount}`.length > 2 && formattedCount.length < 2) {
       formattedCount = numeral(this.item.viewCount).format("0.0a");
+    }
     return formattedCount;
   }
 
   get publishedAt() {
-    if (!YtResolver.isVideoItem(this.item) || !this.item.publishedAt) return "";
+    if (!YT.isVideoItem(this.item) || !this.item.publishedAt) return "";
     return moment(this.item.publishedAt).fromNow();
   }
 
-  constructor(item: YtResolver.Item) {
+  get url() {
+    return YT.isVideoItem(this.item)
+      ? YT.getSongUrl({ videoId: this.item.id })
+      : YT.getSongUrl({ listId: this.item.id });
+  }
+
+  get namedLink() {
+    return Md.nl("link", this.url);
+  }
+
+  constructor(item: Item) {
     this.item = item;
-    this.allDisplays = [
+    this.commonDisplays = [
       SongDisplay.Duration,
       SongDisplay.Channel,
       SongDisplay.ViewCount,
@@ -78,15 +105,14 @@ export class ItemFormatter {
     ];
   }
 
-  public getDetail({
-    includes = this.allDisplays,
+  public format({
+    includes = this.commonDisplays,
     excludes = [],
   }: DisplayOption = {}) {
-    if (!YtResolver.isVideoItem(this.item)) {
-      return [
-        Md.nl(this.item.channelTitle, this.item.channelId),
-        `**${this.item.itemCount}** videos`,
-      ].join(SEP);
+    if (!YT.isVideoItem(this.item)) {
+      return [this.channelNamedlink, `**${this.item.itemCount}** videos`].join(
+        SEP
+      );
     }
     const details: string[] = [];
     const displays = _.difference(includes, excludes);
@@ -96,7 +122,7 @@ export class ItemFormatter {
         case SongDisplay.Channel:
           detail = Md.nl(
             this.item.channelTitle,
-            YtResolver.getChannelUrl(this.item.channelId)
+            YT.getChannelUrl(this.item.channelId)
           );
           break;
         case SongDisplay.Duration:
@@ -131,15 +157,15 @@ export class Song {
   private formatter: ItemFormatter;
 
   get channelUrl() {
-    return YtResolver.getChannelUrl(this.channelId);
+    return this.formatter.channelUrl;
   }
 
   get channelNamedlink() {
-    return Md.nl(this.channelTitle, this.channelUrl);
+    return this.formatter.channelNamedlink;
   }
 
   get url() {
-    return YtResolver.getSongUrl(this.id, this.playlist?.id);
+    return YT.getSongUrl({ videoId: this.id, listId: this.playlist?.id });
   }
 
   get formattedDuration() {
@@ -155,7 +181,7 @@ export class Song {
   }
 
   get videoItem() {
-    const video: YtResolver.Item$Video = {
+    const video: Item$Video = {
       id: this.id,
       title: this.title,
       channelId: this.channelId,
@@ -180,8 +206,8 @@ export class Song {
     thumbnailUrl,
     viewCount,
     playlist,
-    requestor,
-  }: SongSpecs) {
+    requestorId,
+  }: SongData) {
     this.id = id;
     this.title = title;
     this.publishedAt = publishedAt;
@@ -192,36 +218,35 @@ export class Song {
     this.thumbnailUrl = thumbnailUrl;
     this.viewCount = viewCount;
     this.playlist = playlist;
-    this.requestor = requestor;
+    this.requestor = new Requestor(requestorId);
     this.formatter = new ItemFormatter(this.videoItem);
   }
 
-  public static build(
-    videoItem: YtResolver.Item$Video,
-    user: Discord.User,
-    listItem?: YtResolver.Item$Playlist
-  ) {
-    const specs: SongSpecs = {
-      ...videoItem,
-      requestor: { id: user.id, tag: user.tag },
+  public static build(video: Video, requestorId: string, playlist?: Playlist) {
+    const songData: SongData = {
+      ...video,
+      requestorId,
+      playlist,
     };
-    if (listItem)
-      specs.playlist = {
-        id: listItem.id,
-        title: listItem.title,
-        thumbnailUrl: listItem.thumbnailUrl,
-      };
-    return new Song(specs);
+    return new Song(songData);
   }
 
   public getDetail({
-    includes = [...this.formatter.allDisplays, SongDisplay.Requestor],
+    includes = [...this.formatter.commonDisplays, SongDisplay.Requestor],
     excludes = [],
   }: DisplayOption = {}) {
-    const details = [this.formatter.getDetail({ includes, excludes })];
+    const details = [this.formatter.format({ includes, excludes })];
     if (includes.includes(SongDisplay.Requestor)) {
-      details.push("Requested by: " + this.requestor.tag);
+      details.push(`${this.requestor}`);
     }
     return details.join(SEP);
+  }
+
+  public toData(): SongData {
+    return {
+      ...this.videoItem,
+      requestorId: this.requestor.id,
+      playlist: this.playlist,
+    };
   }
 }

@@ -3,7 +3,6 @@ export class Range {
   public readonly end: number;
   public readonly startFromBegin: boolean;
   public readonly endAtFinal: boolean;
-  // public readonly coverAll: boolean;
 
   get coverAll() {
     return this.startFromBegin && this.endAtFinal;
@@ -24,7 +23,6 @@ export class Range {
     this.end = j;
     this.startFromBegin = this.start === 0;
     this.endAtFinal = this.end === Infinity;
-    // this.coverAll = this.startFromBegin && this.endAtFinal;
   }
 
   public static buildCoverAll() {
@@ -38,7 +36,7 @@ export class Range {
     return num >= this.start && num <= this.end;
   }
 
-  public getIndexes(end: number) {
+  public toIndexes(end: number) {
     const nums: number[] = [];
     const start = this.start < 0 ? 0 : this.start;
     end = Math.min(end, this.end);

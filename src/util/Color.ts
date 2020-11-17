@@ -2,26 +2,25 @@ export class Color {
   /**
    * green
    */
-  public static CREATE = 0x00ff00;
+  public static GREEN = 0x00ff00;
   /**
    * red
    */
-  public static DELETE = 0xff0000;
+  public static RED = 0xff0000;
   /**
    * pink
    */
-  public static MAPLE = 0xff33a2;
+  public static PINK = 0xff33a2;
   /**
    * purple
    */
-  public static MUSIC = 0x9033ff;
+  public static PURPLE = 0x9033ff;
   /**
    * blue
    */
-  public static GENERAL = 0x33a2ff;
-
+  public static BLUE = 0x33a2ff;
   /**
-   * Kinda yellow-ish
+   * yellow-ish
    */
-  public static HELP = 0xc79608;
+  public static YELLOW = 0xc79608;
 }

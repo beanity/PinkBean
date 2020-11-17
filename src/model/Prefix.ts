@@ -1,7 +1,6 @@
 import { env } from "../lib";
 
 export class Prefix {
-  public guildId: string;
   public content: string;
   public space: boolean;
 
@@ -9,8 +8,7 @@ export class Prefix {
     return this.toString().length;
   }
 
-  constructor(guildId: string, content = env.prefix, space = false) {
-    this.guildId = guildId;
+  constructor(content = env.prefix.content, space = env.prefix.space) {
     this.content = content.trim();
     this.space = space;
   }

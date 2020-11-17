@@ -1,24 +1,22 @@
-import { Color, Md } from "../lib";
+import { Color } from "../lib";
 import { DiscordData, Command, CommandExample } from "./base";
 
 export class Leave extends Command {
   constructor() {
-    super("leave", Color.MUSIC);
+    super("leave", Color.PURPLE);
   }
 
-  public async continue(data: DiscordData) {
-    if (data.bot.voice.channel) {
-      data.bot.voice.channel.leave();
-      data.channel.send(
-        this.embed().setDescription(
-          `Left ${Md.bld(data.bot.voice.channel.name)}`
-        )
+  public async continue(discord: DiscordData) {
+    if (discord.bot.voice.channel) {
+      discord.bot.voice.channel.leave();
+      discord.channel.send(
+        this.embed().setDescription(`Left ${discord.bot.voice.channel}`)
       );
     }
   }
 
   public description() {
-    return "Leave the current voice channel.";
+    return "Leave voice channel.";
   }
 
   public customAliases() {
@@ -29,7 +27,7 @@ export class Leave extends Command {
     return [
       {
         cmd: this.fullName,
-        explain: "make the bot leave the voice channel",
+        explain: "make the bot leave the current voice channel",
       },
     ];
   }

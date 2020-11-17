@@ -5,11 +5,11 @@ import { DiscordData, Command, CommandExample } from "./base";
 
 export class Current extends Command {
   constructor() {
-    super("current", Color.MUSIC);
+    super("current", Color.PURPLE);
   }
 
   public description() {
-    return "Show the currently playing song.";
+    return "Show current song.";
   }
 
   public customAliases() {
@@ -20,7 +20,7 @@ export class Current extends Command {
     return [
       {
         cmd: this.fullName,
-        explain: "show the current song",
+        explain: "show current song",
       },
     ];
   }
@@ -31,6 +31,7 @@ export class Current extends Command {
     if (!song) return;
     const streamTime = discord.bot.voice.connection?.dispatcher?.streamTime;
     const embed = this.embed()
+      .setAuthor("Now playing")
       .setTitle(song.title)
       .setURL(song.url)
       .setThumbnail(song.thumbnailUrl)
@@ -80,7 +81,7 @@ export class Current extends Command {
     }
     fields.push({
       name: "Requested by",
-      value: song.requestor.tag,
+      value: song.requestor,
       inline: true,
     });
     return fields;

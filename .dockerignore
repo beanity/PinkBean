@@ -1,6 +1,6 @@
 .git
 .vscode
 node_modules
-dist/**/*
+dist
 README.md
 npm-debug.log

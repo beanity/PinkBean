@@ -1,20 +1,23 @@
 import { Time as TimeEntity, News as NewsEntity } from "../db/entity";
-import { Color, Md, Discord } from "../lib";
-import { dbCache } from "../manager";
+import { Color, Discord } from "../lib";
 import { DiscordData, Command, CommandExample, Option } from "./base";
 import { getRepository } from "typeorm";
 
 export class Sub extends Command {
   private timer: Option;
   constructor() {
-    super("sub", Color.MAPLE);
+    super("sub", Color.PINK, true);
     this.timer = new Option("-t", "subscribe to time");
     this.addCustomOptions(this.timer);
     this.enableCooldown(2000);
   }
 
   public description() {
-    return "Receive news or time periodically in a channel (requires admin). By default, subscribe to news.";
+    return "Subscribe news or time periodically in a channel. Subscribe to news by default.";
+  }
+
+  public briefDescription() {
+    return "Toggle news or time subscription";
   }
 
   public customExamples(): CommandExample[] {
@@ -37,38 +40,36 @@ export class Sub extends Command {
       await this.handleTime(discord, channel);
       return;
     }
-    await this.handleNews(discord, channel);
+    await this.subNews(discord, channel);
   }
 
-  private async handleNews(discord: DiscordData, channel: Discord.TextChannel) {
-    const existing = dbCache.news.get(discord.guild.id);
-    let shouldSub = true;
-    if (existing && existing.channel === channel.id) {
-      await getRepository(NewsEntity).delete(existing);
-      dbCache.news.delete(existing);
-      shouldSub = false;
+  private async subNews(discord: DiscordData, channel: Discord.TextChannel) {
+    const repo = getRepository(NewsEntity);
+    const existing = await repo.findOne(discord.guild.id);
+    let shouldSub = false;
+    if (existing?.channel === channel.id) {
+      await repo.delete(existing);
     } else {
       const news = new NewsEntity();
       news.id = discord.guild.id;
       news.channel = channel.id;
-      await getRepository(NewsEntity).save(news);
-      dbCache.news.set(news);
+      await repo.save(news);
+      shouldSub = true;
     }
     channel
-      .send(this.subEmbed(shouldSub, "news", channel.name))
+      .send(this.subEmbed(shouldSub, "news", channel))
       .catch(console.error);
   }
 
   private async handleTime(discord: DiscordData, channel: Discord.TextChannel) {
-    const existing = dbCache.time.get(discord.guild.id);
-    let shouldSub = true;
-    if (existing && existing.channel === channel.id) {
-      await getRepository(TimeEntity).delete(existing);
-      dbCache.time.delete(existing);
-      shouldSub = false;
+    const repo = getRepository(TimeEntity);
+    const existing = await repo.findOne(discord.guild.id);
+    let shouldSub = false;
+    if (existing?.channel === channel.id) {
+      await repo.delete(existing);
     } else {
-      if (existing && existing.message) {
-        await this.deletePrevious(
+      if (existing?.message) {
+        await this.deletePreviousMsg(
           discord.client,
           existing.channel,
           existing.message
@@ -78,15 +79,15 @@ export class Sub extends Command {
       const time = new TimeEntity();
       time.id = discord.guild.id;
       time.channel = channel.id;
-      await getRepository(TimeEntity).save(time);
-      dbCache.time.set(time);
+      await repo.save(time);
+      shouldSub = true;
     }
     channel
-      .send(this.subEmbed(shouldSub, "time", channel.name))
+      .send(this.subEmbed(shouldSub, "time", channel))
       .catch(console.error);
   }
 
-  private async deletePrevious(
+  private async deletePreviousMsg(
     client: Discord.Client,
     channelId: string,
     messageId: string
@@ -98,10 +99,12 @@ export class Sub extends Command {
     }
   }
 
-  private subEmbed(shouldSub: boolean, topic: string, channel: string) {
+  private subEmbed(
+    shouldSub: boolean,
+    topic: string,
+    channel: Discord.Channel
+  ) {
     const sub = shouldSub ? "Subcribed to" : "Unsubscribed to";
-    return this.embed().setDescription(
-      `${sub} ${topic} in ${Md.bld("#" + channel)}`
-    );
+    return this.embed().setDescription(`${sub} ${topic} in ${channel}`);
   }
 }

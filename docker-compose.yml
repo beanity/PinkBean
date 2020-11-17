@@ -1,27 +1,56 @@
-version: "3.7"
+version: "3.8"
 
-services: 
+services:
   app:
     build: .
     image: pinkbean
-    environment: 
-      - DB_HOST=db
-      - DB_PORT=5432
-    depends_on: 
+    depends_on:
       - db
-  # redis:
-  #   image: redis:alpine
-  #   volumes: 
-  #     - redis-data:/data
+      - redis
+  redis:
+    image: redis
+    restart: on-failure
+    volumes:
+      - redis_data:/data
   db:
     image: postgres
-    restart: always
+    restart: on-failure
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./scripts/pg_init:/docker-entrypoint-initdb.d
     ports:
       - "6543:5432"
+    env_file:
+      - .env
+  # st-logagent:
+  #   image: "sematext/logagent:latest"
+  #   environment:
+  #     - LOGS_TOKEN=b70a9f73-0670-4088-a720-aa49e4d44cab
+  #     - REGION=US
+  #   cap_add:
+  #     - SYS_ADMIN
+  #   restart: always
+  #   volumes:
+  #     - "/var/run/docker.sock:/var/run/docker.sock"
+  # sematext-agent:
+  #   image: 'sematext/agent:latest'
+  #   environment:
+  #     - INFRA_TOKEN=09687780-28a2-4d6c-b1b5-7bbe0745673f
+  #     - CONTAINER_TOKEN=69ddb4db-1272-4fe5-896e-db11c1856183
+  #     - REGION=US
+  #   cap_add:
+  #     - SYS_ADMIN
+  #   restart: always
+  #   volumes:
+  #     - '/:/hostfs:ro'
+  #     - '/etc/passwd:/etc/passwd:ro'
+  #     - '/etc/group:/etc/group:ro'
+  #     - '/var/run/:/var/run/'
+  #     - '/sys/kernel/debug:/sys/kernel/debug'
+  #     - '/sys:/host/sys:ro'
+  #     - '/dev:/hostfs/dev:ro'
 
 volumes:
   redis_data:
   db_data:
+  

@@ -1,25 +1,24 @@
 import { Join } from ".";
-import { Color, Discord, Md } from "../lib";
+import { Color, Discord } from "../lib";
 import { guildMaster } from "../manager";
-import { Guild, Song, ItemFormatter } from "../model";
-import { YtResolver, prism, ytdl } from "../youtube";
+import { Guild, Song, SongDisplay, ItemFormatter } from "../model";
+import { LinkParam, Item, YT, prism, ytdl } from "../youtube";
 import { Argument, Command, CommandExample, DiscordData, Option } from "./base";
 
-const DOT = "•";
-const SEARCH_PER_PAGE = 5;
-
 export class Play extends Command {
+  private static readonly SEARCH_PER_PAGE = 5;
+
   private arg: Argument;
   private listLimit: Option;
 
   constructor() {
-    super("play", Color.MUSIC);
+    super("play", Color.PURPLE);
 
     this.arg = new Argument({ name: "SONG", variadic: true });
 
     this.listLimit = new Option(
-      "-m",
-      "Set the maximum size to k when adding a playlist (default 50; max 200)",
+      "-s",
+      "set the maximum size to k when adding a playlist (default 50; max 200)",
       new Argument({ name: "k", naturalable: true })
     );
 
@@ -36,7 +35,11 @@ export class Play extends Command {
   }
 
   public description() {
-    return "Play music from YouTube. Resume playing if nothing is provided.";
+    return "Play a linked youtube song or search keywords on YouTube. Resume playing if nothing is provided.";
+  }
+
+  public briefDescription() {
+    return "Play a linked youtube song or search keywords on YouTube";
   }
 
   public customExamples(): CommandExample[] {
@@ -70,7 +73,7 @@ export class Play extends Command {
       discord.channel.send(this.queueFullEmbed());
       return;
     }
-    if (YtResolver.isYtLink(input)) {
+    if (YT.isLink(input)) {
       await this.processLink(input, discord);
       return;
     }
@@ -79,8 +82,8 @@ export class Play extends Command {
 
   public async autoPlay(discord: DiscordData) {
     const guild = guildMaster.get(discord.guild.id);
-    const currentSong = guild.queue.first;
-    if (!currentSong) {
+    const song = guild.queue.first;
+    if (!song) {
       discord.channel.send(this.embed().setDescription("Queue is empty"));
       return;
     }
@@ -92,22 +95,19 @@ export class Play extends Command {
       }
       return;
     }
-    let stream;
-    try {
-      stream = await this.downloadStream(currentSong);
-    } catch (error) {
-      console.error(error);
-      this.handleSongError(currentSong, guild, discord, true);
-      return;
-    }
+    const stream = await this.downloadStream(song);
     if (!stream) {
-      this.handleSongError(currentSong, guild, discord, true);
+      discord.channel
+        .send(this.errorEmbed({ videoId: song.id, listId: song.playlist?.id }))
+        .catch(console.error);
+      guild.queue.shift();
+      this.autoPlay(discord).catch(console.error);
       return;
     }
     const displatcher = conn.play(stream, {
       type: "opus",
-      volume: 0.4,
-      highWaterMark: 25,
+      volume: 0.38,
+      highWaterMark: 1,
     });
     this.initDispatcher(displatcher, discord, guild);
   }
@@ -127,21 +127,21 @@ export class Play extends Command {
   }
 
   private async processKeywords(keywords: string, discord: DiscordData) {
-    const items = await YtResolver.search(keywords);
+    const items = await YT.searchByQuery(keywords);
     if (!items.length) {
-      discord.channel.send(this.noResultsEmbed().setFooter(discord.user.tag));
+      discord.channel.send(this.noResultsEmbed());
       return;
     }
-    this.chooseItem(items, discord);
+    return this.chooseItem(items, discord);
   }
 
-  private async chooseItem(items: YtResolver.Item[], discord: DiscordData) {
+  private async chooseItem(items: Item[], discord: DiscordData) {
     let pageIndex = 0;
     const choiceMsg = await discord.channel.send(
       this.choiceEmbed(items, discord, pageIndex)
     );
     const filter = (m: Discord.Message) => m.author.id === discord.user.id;
-    const option = { time: 35000 };
+    const option = { time: 60000 };
     const collector = discord.channel.createMessageCollector(filter, option);
     let choice: number | undefined;
     collector.on("collect", (m: Discord.Message) => {
@@ -159,7 +159,7 @@ export class Play extends Command {
             ? Math.max(pageIndex - 1, 0)
             : Math.min(
                 pageIndex + 1,
-                Math.ceil(items.length / SEARCH_PER_PAGE) - 1
+                Math.ceil(items.length / Play.SEARCH_PER_PAGE) - 1
               );
         if (newIndex === pageIndex) return;
         pageIndex = newIndex;
@@ -178,49 +178,44 @@ export class Play extends Command {
     });
     collector.on("end", () => {
       this.deleteMsg(choiceMsg);
-      if (choice === undefined) {
+      if (choice == undefined) {
         discord.channel.send(this.embed().setDescription("Search cancelled"));
         return;
       }
       const item = items[choice];
-      if (YtResolver.isVideoItem(item)) {
-        this.addSong(Song.build(item, discord.user), discord);
+      if (YT.isVideoItem(item)) {
+        this.addSong(Song.build(item, discord.user.id), discord);
         return;
       }
-      this.processList(item.id, discord);
+      this.processList(item.id, discord).catch(console.error);
     });
   }
 
   private async processLink(url: string, discord: DiscordData) {
-    const params = YtResolver.parseParams(url);
-    if (!params.videoId && !params.listId) {
+    const param = YT.parseParam(url);
+    if (!param.videoId && !param.listId) {
       discord.channel.send(
-        this.embed().setDescription(`Invalid youtube [link](${url})`)
+        this.embed().setDescription(`Invalid youtube [song](${url})`)
       );
       return;
     }
-    if (params.listId) {
-      await this.processList(params.listId, discord, params.videoId);
+    if (param.listId) {
+      await this.processList(param.listId, discord, param.videoId);
       return;
     }
-    await this.processVideo(params.videoId!, discord);
+    await this.processVideo(param.videoId!, discord);
   }
 
   private async processVideo(videoId: string, discord: DiscordData) {
-    let videoItem: YtResolver.Item$Video | undefined;
-    try {
-      videoItem = (await YtResolver.getVideoDetails(videoId)).shift();
-    } catch (e) {
-      console.error(e);
-      discord.channel.send(this.unavailableEmbed(videoId));
+    const result = await YT.searchByParam({ videoId });
+    const video = result.videos.shift();
+    if (!video) {
+      discord.channel
+        .send(this.unavailableEmbed({ videoId }))
+        .catch(console.error);
       return;
     }
-    if (!videoItem) {
-      discord.channel.send(this.unavailableEmbed(videoId));
-      return;
-    }
-    const song = Song.build(videoItem, discord.user);
-    this.addSong(song, discord);
+    this.addSong(Song.build(video, discord.user.id), discord);
   }
 
   private async processList(
@@ -228,43 +223,32 @@ export class Play extends Command {
     discord: DiscordData,
     videoId?: string
   ) {
-    let limit: number | undefined;
-
+    let limit = 50;
     if (this.listLimit.enabled) {
       const parsed = this.listLimit.arg!.parse();
       if (parsed.errorMsg) {
         discord.channel.send(this.embed().setDescription(parsed.errorMsg));
         return;
       }
-      if (parsed.num !== undefined) {
+      if (parsed.num != undefined) {
         limit = Math.min(parsed.num, Guild.LIST_MAX);
-        if (limit === 0) {
-          return;
-        }
       }
     }
-
-    let details: YtResolver.PlaylistDetails | undefined;
-
-    try {
-      details = await YtResolver.getListItemsDetails(listId, videoId, limit);
-    } catch (e) {
-      console.error(e);
-      discord.channel.send(this.errorEmbed(videoId, listId));
+    if (limit === 0) {
       return;
     }
 
-    if (!details) {
+    const result = await YT.searchByParam({ listId, videoId }, limit);
+    if (!result.playlist || !result.videos.length) {
       if (videoId) {
         await this.processVideo(videoId, discord);
         return;
       }
-      discord.channel.send(this.unavailableEmbed(videoId, listId));
+      discord.channel.send(this.unavailableEmbed({ videoId, listId }));
       return;
     }
-
-    const songs = details.videos.map((video) =>
-      Song.build(video, discord.user, details!.playlist)
+    const songs = result.videos.map((video) =>
+      Song.build(video, discord.user.id, result.playlist)
     );
     this.addSongs(songs, discord);
   }
@@ -274,61 +258,86 @@ export class Play extends Command {
     let embed: Discord.MessageEmbed;
     if (queue.add(song)) {
       embed = this.embed()
-        .setAuthor(`Added: ${song.title}`, "", song.url)
+        .setAuthor("Added")
+        .setTitle(song.title)
+        .setURL(song.url)
         .setThumbnail(song.thumbnailUrl)
         .setDescription(song.getDetail());
     } else {
       embed = this.queueFullEmbed();
     }
-    discord.channel.send(embed);
-    if (queue.full) discord.channel.send(this.queueFullEmbed());
-    this.autoPlay(discord);
+    discord.channel.send(embed).catch(console.error);
+    if (queue.full) {
+      discord.channel.send(this.queueFullEmbed()).catch(console.error);
+    }
+    this.autoPlay(discord).catch(console.error);
   }
 
   private addSongs(songs: Song[], discord: DiscordData) {
     const queue = guildMaster.get(discord.guild.id).queue;
-    let addedCount = 0;
-    songs.forEach((song) => queue.add(song) && addedCount++);
-    const listTitle = songs[0].playlist!.title;
-    const listThumbnail = songs[0].playlist!.thumbnailUrl;
-    if (addedCount) {
-      discord.channel.send(
-        this.embed()
-          .setAuthor(
-            `From playlist: ${listTitle}`,
-            "",
-            YtResolver.getSongUrl(songs[0].id, songs[0].playlist!.id)
-          )
-          .setDescription(`Added **${addedCount}** songs`)
-          .setThumbnail(listThumbnail)
-      );
+    let added = 0;
+    songs.forEach((song) => queue.add(song) && added++);
+    const playlist = songs[0].playlist!;
+    if (added) {
+      const url = YT.getSongUrl({ listId: playlist.id, videoId: songs[0].id });
+      discord.channel
+        .send(
+          this.embed()
+            .setAuthor("From")
+            .setTitle(playlist.title)
+            .setURL(url)
+            .setDescription(`Added **${added}** songs`)
+            .setThumbnail(songs[0].thumbnailUrl)
+        )
+        .catch(console.error);
     }
-    if (queue.full) discord.channel.send(this.queueFullEmbed());
-    this.autoPlay(discord);
+    if (queue.full) {
+      discord.channel.send(this.queueFullEmbed()).catch(console.error);
+    }
+    this.autoPlay(discord).catch(console.error);
   }
 
   /**
-   * inspired by https://github.com/amishshah/ytdl-core-discord/blob/master/index.js
+   * https://github.com/amishshah/ytdl-core-discord/blob/master/index.js
    */
-  private async downloadStream(song: Song) {
-    const info = await ytdl.getInfo(song.id);
-    if (!info.formats.length) return;
-    const filterOpus = (format: ytdl.videoFormat) => format.codecs === "opus";
-    const options: ytdl.downloadOptions = {
-      quality: "highestaudio",
-      filter: song.isLive ? "audioandvideo" : filterOpus,
-    };
-    if (info.formats.find(filterOpus)) {
+  private async downloadStream(song: Song, tries = 5) {
+    let info: ytdl.videoInfo | undefined;
+    for (let i = 0; i < tries; i++) {
+      try {
+        info = await ytdl.getInfo(song.id);
+        if (info) break;
+      } catch (e) {
+        if (i === tries - 1) console.error(e);
+      }
+    }
+    if (!info || !info.formats.length) return;
+
+    const isOpus = (format: ytdl.videoFormat) => format.codecs === "opus";
+    if (info.formats.find(isOpus)) {
       const demuxer = new prism.opus.WebmDemuxer();
+      const options: any = {
+        quality: "highestaudio",
+        filter: song.isLive ? "audioandvideo" : "audioonly",
+        dlChunkSize: 0,
+        highWaterMark: 1 << 25,
+      };
       return ytdl
         .downloadFromInfo(info, options)
         .pipe(demuxer)
         .on("end", () => demuxer.destroy());
     }
+    const url = this.nextBestFormat(info.formats, song.isLive)?.url;
+    if (!url) return;
     const transcoder = new prism.FFmpeg({
       args: [
+        "-reconnect",
+        "1",
+        "-reconnect_streamed",
+        "1",
+        "-reconnect_delay_max",
+        "5",
         "-i",
-        this.nextBestFormat(info.formats, song.isLive)?.url || "",
+        url,
         "-loglevel",
         "0",
         "-f",
@@ -353,33 +362,24 @@ export class Play extends Command {
   }
 
   private nextBestFormat(formats: ytdl.videoFormat[], isLive = false) {
-    const highestAudioFormats = formats
-      .filter((format) => format.audioBitrate)
+    const sortedFormats = formats
+      .filter((format) =>
+        isLive ? format.audioBitrate && format.isHLS : format.audioBitrate
+      )
       .sort((a, b) => {
-        const aRate = a.audioBitrate!;
-        const bRate = b.audioBitrate!;
-        if (aRate === bRate) {
-          return Number(a.bitrate) - Number(b.bitrate) || 0;
+        /**
+         * return formats with smaller bitrate when audioBitrate are the same.
+         */
+        if (a.audioBitrate === b.audioBitrate) {
+          const aBitrate = Number(a.bitrate);
+          const bBitrate = Number(b.bitrate);
+          if (Number.isNaN(aBitrate)) return -1;
+          if (Number.isNaN(bBitrate)) return 1;
+          return aBitrate - bBitrate;
         }
-        return bRate - aRate;
+        return b.audioBitrate! - a.audioBitrate!;
       });
-    const audioFormats = highestAudioFormats.filter((format) =>
-      isLive ? format.qualityLabel : !format.qualityLabel
-    );
-    return audioFormats[0] || highestAudioFormats[0];
-  }
-
-  private handleSongError(
-    song: Song,
-    guild: Guild,
-    discord: DiscordData,
-    shouldAutoplay = false
-  ) {
-    discord.channel.send(this.unavailableEmbed(song.id, song.playlist?.id));
-    if (shouldAutoplay) {
-      guild.queue.shift();
-      this.autoPlay(discord);
-    }
+    return sortedFormats.shift();
   }
 
   private initDispatcher(
@@ -388,77 +388,67 @@ export class Play extends Command {
     guild: Guild
   ) {
     let nowPlayingMsg: Discord.Message | undefined;
-    dispatcher.once("start", async () => {
+    dispatcher.once("start", () => {
       const currentSong = guild.queue.first;
       if (!currentSong) return;
-      nowPlayingMsg = await discord.channel.send(
-        this.embed()
-          .setAuthor(`Now playing: ${currentSong.title}`, "", currentSong.url)
-          .setDescription(currentSong.getDetail())
-          .setThumbnail(currentSong.thumbnailUrl)
-      );
+      discord.channel
+        .send(
+          this.embed()
+            .setAuthor("Now playing")
+            .setTitle(currentSong.title)
+            .setURL(currentSong.url)
+            .setDescription(currentSong.getDetail())
+            .setThumbnail(currentSong.thumbnailUrl)
+        )
+        .then((msg) => (nowPlayingMsg = msg))
+        .catch(console.error);
     });
-    dispatcher.once("finish", () => {
+    dispatcher.on("finish", () => {
       this.deleteMsg(nowPlayingMsg);
       guild.queue.shift();
       this.autoPlay(discord);
     });
-    dispatcher.on("error", (e) => {
-      console.error(e);
-    });
+    dispatcher.on("error", console.error);
   }
 
   private queueFullEmbed() {
     return this.embed().setDescription("Queue is full");
   }
 
-  private unavailableEmbed(videoId = "", listId = "") {
+  private unavailableEmbed(param: LinkParam) {
     return this.embed().setDescription(
-      `The requested [song](${YtResolver.getSongUrl(
-        videoId,
-        listId
-      )}) is unavailable`
+      `The requested [song](${YT.getSongUrl(param)}) is unavailable`
     );
   }
 
-  private errorEmbed(videoId = "", listId = "") {
-    const song = Md.nl("song", YtResolver.getSongUrl(videoId, listId));
-    const embed = this.embed();
-    embed.setDescription(
-      `There was a problem retrieving the requested ${song}`
+  private errorEmbed(param: LinkParam) {
+    return this.embed().setDescription(
+      `Oops, something happened while processing the requested [song](${YT.getSongUrl(
+        param
+      )})`
     );
-    return embed;
   }
 
-  private noResultsEmbed() {
-    return this.embed().setDescription(`No results found`);
-  }
-
-  private choiceEmbed(
-    items: YtResolver.Item[],
-    discord: DiscordData,
-    pageIndex = 0
-  ) {
-    const offset = pageIndex * SEARCH_PER_PAGE;
-    const choieItems = items.slice(offset, offset + SEARCH_PER_PAGE);
+  private choiceEmbed(items: Item[], discord: DiscordData, pageIndex = 0) {
+    const offset = pageIndex * Play.SEARCH_PER_PAGE;
+    const choieItems = items.slice(offset, offset + Play.SEARCH_PER_PAGE);
     const fields: Discord.EmbedFieldData[] = choieItems.map((item, i) => {
       const name = `${i + offset + 1}. ${item.title}`;
-      const value = new ItemFormatter(item).getDetail();
+      const value = new ItemFormatter(item).format({
+        includes: [SongDisplay.Channel, SongDisplay.Duration],
+      });
       return { name, value };
     });
     const pageInsts: string[] = [];
     if (pageIndex !== 0) {
       pageInsts.push("Previous: enter `a`");
     }
-    const lastPageIndex = Math.ceil(items.length / SEARCH_PER_PAGE) - 1;
+    const lastPageIndex = Math.ceil(items.length / Play.SEARCH_PER_PAGE) - 1;
     if (pageIndex !== lastPageIndex) {
       pageInsts.push("Next: enter `d`");
     }
     const navInstructions: string[] = [];
-    navInstructions.push(
-      pageInsts.join(` ${DOT} `),
-      `Cancel: enter any other key`
-    );
+    navInstructions.push(pageInsts.join(` • `), `Cancel: enter any other key`);
     const embed = this.embed().setAuthor(
       "Choose a song:",
       discord.user.displayAvatarURL({ dynamic: true })

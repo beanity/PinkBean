@@ -18,8 +18,8 @@ export interface BulkRemoveParam {
  */
 export class Queue {
   public static readonly MAX_SIZE = 2000;
-  private songs: Song[] = [];
-  private shouldShift = true;
+  public songs: Song[] = [];
+  // private shouldShift = true;
 
   get empty() {
     return !this.songs.length;
@@ -45,10 +45,6 @@ export class Queue {
     return this.getSong(this.size - 1);
   }
 
-  get all() {
-    return this.songs;
-  }
-
   public add(song: Song) {
     if (this.full) {
       return false;
@@ -58,15 +54,21 @@ export class Queue {
   }
 
   public shift() {
-    if (this.shouldShift) {
-      return this.songs.shift();
-    }
-    this.shouldShift = true;
+    // if (this.shouldShift) {
+    //   return this.songs.shift();
+    // }
+    // this.shouldShift = true;
+    return this.songs.shift();
   }
 
-  public ignoreNextShift() {
-    this.shouldShift = false;
-  }
+  // /**
+  //  * Ignore the next call to `shift()`.
+  //  *
+  //  * Used by the Skip command.
+  //  */
+  // public skipShift() {
+  //   this.shouldShift = false;
+  // }
 
   public getSong(index: number) {
     return this.songs[index] as Song | undefined;
@@ -107,21 +109,6 @@ export class Queue {
     return index ? this.songs.splice(index, 1).shift() : this.shift();
   }
 
-  // public bulkRemove({ indexes = [], range, requestorId }: BulkRemoveParam) {
-  //   const rangeIndexes: number[] = [];
-  //   if (range && range.start < this.size) {
-  //     if (range.coverAll) {
-  //       return this.removeAll(requestorId);
-  //     }
-  //     rangeIndexes.push(...range.getIndexes(this.size - 1));
-  //   }
-  //   indexes = [...new Set([...indexes, ...rangeIndexes])];
-  //   const validIndexes = indexes.filter((v) =>
-  //     requestorId ? this.songs[v]?.requestor?.id === requestorId : this.songs[v]
-  //   );
-  //   return _.pullAt(this.songs, validIndexes);
-  // }
-
   public bulkRemove(indexes: number[], requestorId?: string) {
     if (this.empty) return [];
     indexes = [...new Set(indexes)];
@@ -130,8 +117,4 @@ export class Queue {
     );
     return _.pullAt(this.songs, validIndexes);
   }
-
-  // private isValidIndex(index: number) {
-  //   return Number.isInteger(index) && index >= 0 && index < this.size;
-  // }
 }

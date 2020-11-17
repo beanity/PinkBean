@@ -4,5 +4,5 @@ services:
   app:
     restart: always
 
-  redis:
-    restart: always
+  # redis:
+  #   restart: always

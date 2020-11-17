@@ -3,10 +3,36 @@ import { Time as MapleTime } from "../maplestory/Time";
 import { DiscordData, Command, CommandExample } from "./base";
 
 export class Time extends Command {
-  get timeEmbed() {
+  constructor() {
+    super("time", Color.PINK, true);
+  }
+
+  public description() {
+    return "Server time and reset times (daily/weekly/invasion).";
+  }
+
+  public customAliases() {
+    return ["daily", "weekly", "invasion"];
+  }
+
+  public customExamples(): CommandExample[] {
+    return [
+      {
+        cmd: this.fullName,
+        explain: "show server time and reset times",
+      },
+    ];
+  }
+
+  public async continue(discord: DiscordData) {
+    discord.channel.send(this.timeEmbed()).catch(console.error);
+  }
+
+  public timeEmbed() {
     const embed = this.embed();
     const serverTime = MapleTime.time;
     embed.setTitle(serverTime.format("h:mm A"));
+    embed.setAuthor("Server Time");
     embed.setDescription(`${serverTime.format("dddd, MMMM D, YYYY")} (UTC)`);
     embed.addFields(
       {
@@ -27,26 +53,5 @@ export class Time extends Command {
       }
     );
     return embed;
-  }
-
-  constructor() {
-    super("time", Color.MAPLE);
-  }
-
-  public description() {
-    return "Server time and reset time.";
-  }
-
-  public customExamples(): CommandExample[] {
-    return [
-      {
-        cmd: this.fullName,
-        explain: "show server time and reset time",
-      },
-    ];
-  }
-
-  public async continue(discord: DiscordData) {
-    discord.channel.send(this.timeEmbed).catch(console.error);
   }
 }

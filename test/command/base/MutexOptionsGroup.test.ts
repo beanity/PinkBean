@@ -1,9 +1,6 @@
 import { expect } from "chai";
 import { Option } from "../../../src/command/base/Option";
-import {
-  groupMutexOptions,
-  MutexOptionsGroup,
-} from "../../../src/command/base/MutexOptionsGroup";
+import { MutexOptionsGroup } from "../../../src/command/base/MutexOptionsGroup";
 
 describe("mutexOptions", () => {
   let foo: Option;
@@ -14,7 +11,7 @@ describe("mutexOptions", () => {
     foo = new Option("-f --all", "");
     bar = new Option("--bar", "");
     baz = new Option("--baz", "");
-    group = groupMutexOptions(foo, bar, baz);
+    group = MutexOptionsGroup.add(foo, bar, baz);
   });
   it("should enable only one of its options", () => {
     foo.enable();

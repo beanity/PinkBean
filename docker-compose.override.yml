@@ -1,14 +1,13 @@
-version: "3.7"
-
 services:
   app:
+    build:
+      target: dev
     volumes: 
-      - ./dist:/usr/src/app/dist
+      - ./dist:/usr/app/dist
     ports:
       - "9229:9229"
     environment: 
       - NODE_ENV=development
+    # command: ["npm", "node", "dist/bot.js"]
     command: ["npm", "run", "watch-nodemon", "dist/bot.js"]
-  db:
-    env_file: 
-      - .env.development
+    # command: ["npx", "nodemon", "--inspect=0.0.0.0:9229", "-L", "dist", "dist/bot.js"]

@@ -4,12 +4,11 @@ import { Option } from "./Option";
  * Represents a group of mutually exclusive options.
  */
 export class MutexOptionsGroup {
-  private _enabled: boolean;
   private _enabledOption?: Option;
   private optionsSet: Set<Option>;
 
   get enabled() {
-    return this._enabled;
+    return !!this._enabledOption;
   }
 
   get enabledOption() {
@@ -21,7 +20,6 @@ export class MutexOptionsGroup {
   }
 
   constructor(...options: Option[]) {
-    this._enabled = false;
     this.optionsSet = new Set();
     for (const option of options) {
       this.optionsSet.add(option);
@@ -29,16 +27,15 @@ export class MutexOptionsGroup {
     }
   }
 
+  public static add(...options: Option[]) {
+    return new MutexOptionsGroup(...options);
+  }
+
   public enable(option: Option) {
     if (!this.enabled && this.optionsSet.has(option)) {
-      this._enabled = true;
       this._enabledOption = option;
       return true;
     }
     return false;
   }
-}
-
-export function groupMutexOptions(...options: Option[]) {
-  return new MutexOptionsGroup(...options);
 }

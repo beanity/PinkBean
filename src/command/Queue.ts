@@ -7,16 +7,14 @@ const ITEMS_PER_PAGE = 10;
 
 export class Queue extends Command {
   constructor() {
-    super("queue", Color.MUSIC);
+    super("queue", Color.PURPLE);
   }
 
   public async continue(discord: DiscordData) {
     const queue = guildMaster.get(discord.guild.id).queue;
-    const sentMsg = await discord.channel.send(
-      this.itemsEmbed(queue.all, discord.guild.name)
-    );
+    const sentMsg = await discord.channel.send(this.itemsEmbed(queue.songs));
 
-    const timeoutMs = 40000;
+    const timeoutMs = 60000;
     if (queue.size <= ITEMS_PER_PAGE) {
       this.deleteMsg(sentMsg, timeoutMs);
       return;
@@ -28,12 +26,15 @@ export class Queue extends Command {
     let pageIndex = 0;
 
     collector.on("collect", (collected: Discord.Message) => {
-      this.deleteMsg(collected);
       if (collected.content.startsWith(this.prefix.toString())) {
         collector.stop();
       }
       const match = /^(a|d)$/i.exec(collected.content);
-      if (!match) return;
+      this.deleteMsg(collected);
+      if (!match) {
+        collector.stop();
+        return;
+      }
       let newIndex = pageIndex + (match[1].toLowerCase() === "a" ? -1 : 1);
       newIndex = Math.min(
         Math.max(newIndex, 0),
@@ -43,12 +44,12 @@ export class Queue extends Command {
       pageIndex = newIndex;
       collector.resetTimer(option);
       sentMsg
-        .edit(this.itemsEmbed(queue.all, discord.guild.name, pageIndex))
+        .edit(this.itemsEmbed(queue.songs, pageIndex))
         .catch(console.error);
     });
 
     collector.on("end", () => {
-      this.deleteMsg(sentMsg, 5000);
+      this.deleteMsg(sentMsg, 10000);
     });
   }
 
@@ -73,15 +74,15 @@ export class Queue extends Command {
     return Math.ceil(size / ITEMS_PER_PAGE) - 1;
   }
 
-  private itemsEmbed(songs: Song[], name: string, pageIndex = 0) {
-    const embed = this.embed().setTitle(name);
+  private itemsEmbed(songs: Song[], pageIndex = 0) {
+    const embed = this.embed();
     if (!songs.length) return embed.setDescription("Queue is empty");
-
+    embed.setAuthor("Music");
+    embed.setTitle(`Total **${songs.length}**`);
     const finalPageIndex = this.getFinalPageIndex(songs.length);
     const descriptions = [];
-    descriptions.push(`Total **${songs.length}** songs queued`);
-    pageIndex !== 0 && descriptions.push("Previous page: enter `a`");
-    pageIndex !== finalPageIndex && descriptions.push("Next page: enter `d`");
+    pageIndex !== 0 && descriptions.push("Previous: enter `a`");
+    pageIndex !== finalPageIndex && descriptions.push("Next: enter `d`");
 
     const offset = ITEMS_PER_PAGE * pageIndex;
     const displayItems = songs.slice(offset, offset + ITEMS_PER_PAGE);
@@ -97,7 +98,7 @@ export class Queue extends Command {
       return { name, value };
     });
 
-    embed.setDescription(descriptions.join(" • "));
+    embed.setDescription(descriptions.join(` • `));
     embed.addFields(fields);
     if (songs.length > ITEMS_PER_PAGE) {
       embed.setFooter(`Page ${pageIndex + 1} of ${finalPageIndex + 1}`);

@@ -1,24 +1,29 @@
-import * as dotenv from "dotenv";
-import path = require("path");
+import * as config from "config";
 
-process.env.NODE_ENV = process.env.NODE_ENV ?? "development";
-
-const envFileName = `.env.${process.env.NODE_ENV}`;
-const filePath = path.resolve(__dirname, "..", envFileName);
-const result = dotenv.config({ path: filePath });
-
-if (result.error) {
-  throw result.error;
-}
+process.env.NODE_ENV ??= "development";
 
 export const env = {
-  discord: process.env.DISCORD || "",
-  youtube: process.env.YOUTUBE || "",
-  dbName: process.env.POSTGRES_DB || "",
-  dbHost: process.env.DB_HOST || "localhost",
-  dbPort: process.env.DB_PORT || "6543",
-  dbUser: process.env.POSTGRES_USER || "postgres",
-  dbPassword: process.env.POSTGRES_PASSWORD || "",
-  prefix: process.env.NODE_ENV === "development" ? "$" : "pb ",
-  server: "https://www.pinkbean.xyz",
+  discord: {
+    id: config.get<string>("discord.id"),
+    secret: config.get<string>("discord.secret"),
+    guildLogs: config.get<string[]>("discord.guildLogs"),
+  },
+  youtube: config.get<string>("youtube.secret"),
+  db: {
+    name: config.get<string>("db.name"),
+    host: config.get<string>("db.host"),
+    port: config.get<number>("db.port"),
+    user: config.get<string>("db.user"),
+    secret: config.get<string>("db.secret"),
+  },
+  redis: {
+    host: config.get<string>("redis.host"),
+    port: config.get<number>("redis.port"),
+  },
+  prefix: {
+    content: config.get<string>("prefix.content"),
+    space: config.get<boolean>("prefix.space"),
+  },
+  server: config.get<string>("server"),
+  devs: config.get<number[]>("devs"),
 };

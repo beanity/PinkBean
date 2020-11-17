@@ -3,18 +3,18 @@ import { DiscordData, Command, CommandExample } from "./base";
 
 export class Ping extends Command {
   constructor() {
-    super("ping", Color.GENERAL);
+    super("ping", Color.BLUE);
   }
 
   public description() {
-    return "Show the previous heartbeat ping.";
+    return "Pink Bean latency.";
   }
 
   public customExamples(): CommandExample[] {
     return [
       {
         cmd: this.fullName,
-        explain: "show the previous heartbeat ping",
+        explain: "show the bot's previous heartbeat ping",
       },
     ];
   }
@@ -26,8 +26,8 @@ export class Ping extends Command {
       .format("y [years], w [weeks], d [days], h [hours], m [minutes]");
     const embed = this.embed();
     embed.addFields(
-      { name: "Ping", value: `${ping} ms`, inline: true },
-      { name: "Uptime", value: uptime, inline: true }
+      { name: "Ping", value: `${ping} ms` },
+      { name: "Uptime", value: uptime }
     );
     discord.channel.send(embed).catch(console.error);
   }

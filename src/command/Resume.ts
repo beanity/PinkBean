@@ -4,22 +4,26 @@ import { Play } from ".";
 
 export class Resume extends Command {
   constructor() {
-    super("resume", Color.MUSIC);
+    super("resume", Color.PURPLE);
   }
 
   public async continue(data: DiscordData) {
-    new Play().resume(data);
+    await new Play().resume(data);
   }
 
   public description() {
-    return "Resume music.";
+    return "Resume current song.";
+  }
+
+  public customAliases() {
+    return ["r"];
   }
 
   public customExamples(): CommandExample[] {
     return [
       {
         cmd: this.fullName,
-        explain: "resume the current song",
+        explain: "Resume current song",
       },
     ];
   }

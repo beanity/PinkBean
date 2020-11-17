@@ -35,11 +35,7 @@ export class Markdown {
   /**
    * Named link
    */
-  public static nl(name: any, url: any) {
+  public static nl(name: any, url: string) {
     return `[${name}](${url})`;
   }
-
-  // private static toTrimmed(value: any) {
-  //   return ("" + value).trim();
-  // }
 }

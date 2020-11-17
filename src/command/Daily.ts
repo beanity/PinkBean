@@ -4,7 +4,7 @@ import { DiscordData, Command, CommandExample } from "./base";
 
 export class Daily extends Command {
   constructor() {
-    super("daily", Color.MAPLE);
+    super("daily", Color.PINK);
   }
 
   public description() {

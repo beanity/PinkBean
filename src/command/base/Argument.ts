@@ -20,7 +20,7 @@ export interface ArgumentSpecs {
 }
 
 export class Argument {
-  private static NATRUAL_REGEX = /^(\d+)$/;
+  private static NUM_REGEX = /^(\d+)$/;
   private static RANGE_REGEX = /^(\d*)\.{2}(\d*)$/;
 
   public readonly name: string;
@@ -119,7 +119,7 @@ export class Argument {
       return;
     }
     if (this.indexable) {
-      if (Argument.NATRUAL_REGEX.test(input)) {
+      if (Argument.NUM_REGEX.test(input)) {
         this.parseIndex(input);
         return;
       }
@@ -127,7 +127,10 @@ export class Argument {
         this.parseRange(input);
         return;
       }
-      this.errorMsg = this.msgPrefix(input) + "is not valid";
+      this.errorMsg =
+        this.msgPrefix(input) +
+        "is not a valid index number" +
+        (this.rangeable ? " or range" : "");
     }
     if (this.naturalable) {
       this.parseNatural(input);
@@ -188,8 +191,8 @@ export class Argument {
   }
 
   private parseNatural(input: string) {
-    const msg = this.msgPrefix(input) + "is not valid";
-    const match = Argument.NATRUAL_REGEX.exec(input);
+    const msg = this.msgPrefix(input) + "is not a valid number";
+    const match = Argument.NUM_REGEX.exec(input);
     if (!match) {
       this.errorMsg = msg;
       return;
