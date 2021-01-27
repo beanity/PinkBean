@@ -33,13 +33,8 @@ export class Help extends Command {
 
   public async continue(discord: DiscordData) {
     const msCmdInfos = this.getCmdInfos(this.msCmds());
-    const musicCmdInfos = this.getCmdInfos(this.musicCmds());
     const generalCmdInfos = this.getCmdInfos(this.generalCmds());
-    const lengthInfo = this.getLengthInfo([
-      ...msCmdInfos,
-      ...musicCmdInfos,
-      ...generalCmdInfos,
-    ]);
+    const lengthInfo = this.getLengthInfo([...msCmdInfos, ...generalCmdInfos]);
 
     const content = `\`\`\`css
 Pink Bean
@@ -49,9 +44,6 @@ For example, '${new BotCommand.Item().fullName} -h'
 
 MapleStory:
 ${this.getCmdContent(msCmdInfos, lengthInfo)}
-
-Music:
-${this.getCmdContent(musicCmdInfos, lengthInfo)}
 
 General:
 ${this.getCmdContent(generalCmdInfos, lengthInfo)}

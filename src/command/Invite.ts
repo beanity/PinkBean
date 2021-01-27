@@ -20,7 +20,9 @@ export class Invite extends Command {
   }
 
   public async continue(discord: DiscordData) {
-    const link = await discord.guild.client.generateInvite(["ADMINISTRATOR"]);
+    const link = await discord.guild.client.generateInvite({
+      permissions: ["ADMINISTRATOR"],
+    });
     const embed = this.embed();
     embed.setTitle("Invite Link");
     embed.setDescription(link);

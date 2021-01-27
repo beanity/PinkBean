@@ -95,7 +95,7 @@ export class Guild extends Task {
     embed.setColor(Color.BLUE);
     embed.setTitle(randomQuote);
     embed.setDescription(
-      `Type ${Md.pre(
+      `I am a MapleStory bot. Start by typing ${Md.pre(
         new Help().fullName
       )} to see the list of commands. Click ${Md.nl(
         "here",

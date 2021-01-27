@@ -13,7 +13,6 @@ client.on("ready", () => {
 
 Task.Guild.attach(client);
 Task.Subscription.attach(client);
-Task.Music.attach(client);
 Task.Message.attach(client);
 
 async function connectDb() {
