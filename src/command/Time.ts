@@ -4,7 +4,7 @@ import { DiscordData, Command, CommandExample } from "./base";
 
 export class Time extends Command {
   constructor() {
-    super("time", Color.PINK, true);
+    super("time", Color.PINK);
   }
 
   public description() {

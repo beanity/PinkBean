@@ -18,5 +18,5 @@ export abstract class Task {
     new this(client).add();
   }
 
-  public abstract add(): void;
+  protected abstract add(): void;
 }

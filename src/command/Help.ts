@@ -44,10 +44,8 @@ export class Help extends Command {
     const content = `\`\`\`css
 Pink Bean
 
-@parameters [optional]
-
-To show help for a specific command, add a space and '-h'.
-For example, '${new BotCommand.Play().fullName} -h'
+To show help for a command, add ' -h' after the command.
+For example, '${new BotCommand.Item().fullName} -h'
 
 MapleStory:
 ${this.getCmdContent(msCmdInfos, lengthInfo)}

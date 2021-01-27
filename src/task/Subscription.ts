@@ -12,12 +12,11 @@ export class Subscription extends Task {
   }
 
   public add() {
-    this.client.on("ready", () => {
-      const socket = io.connect(env.server);
-      socket.on("timer", () => this.notifyTime().catch(console.error));
-      socket.on("news", (posts: NewsPost[]) =>
-        this.notifyNews(posts).catch(console.error)
-      );
+    const server = env.server;
+    const socket = io.connect(server);
+    socket.on("timer", () => this.notifyTime().catch(console.error));
+    socket.on("news", (posts: NewsPost[]) => {
+      this.notifyNews(posts).catch(console.error);
     });
   }
 
@@ -28,34 +27,39 @@ export class Subscription extends Task {
       where: { id: In(this.client.guilds.cache.keyArray()) },
     });
     const mapped = (
-      await async.mapLimit(guilds, 10, async (guild) =>
-        this.sendTime(guild).catch(console.error)
+      await async.mapLimit(guilds, 5, async (guild) =>
+        this.sendOrUpdateTime(guild).catch(console.error)
       )
     ).filter((v) => v) as Entity.Time[];
     await repo.save(mapped);
   }
 
-  private async sendTime(timeSub: Entity.Time) {
+  private async sendOrUpdateTime(timeSub: Entity.Time) {
     if (!this.bot) return;
+
     const channel = await this.client.channels.fetch(timeSub.channel);
+
     if (
       !(channel instanceof Discord.TextChannel) ||
       !channel.permissionsFor(this.bot)?.has(Permission.SEND_MESSAGE)
     )
       return;
+
     const embed = new Time().timeEmbed();
+
     if (!timeSub.message) {
       timeSub.message = (await channel.send(embed)).id;
       return timeSub;
     }
+
     let msg: Discord.Message | undefined;
+
     try {
       msg = await channel.messages.fetch(timeSub.message);
     } catch (e) {
-      console.error(
-        `Unable to fetch message id in ${this.sendTime.name}\n${e}`
-      );
+      console.error(e);
     }
+
     if (msg) {
       await msg.edit(embed);
     } else {

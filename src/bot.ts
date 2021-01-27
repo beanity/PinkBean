@@ -16,8 +16,6 @@ Task.Subscription.attach(client);
 Task.Music.attach(client);
 Task.Message.attach(client);
 
-start().catch(console.error);
-
 async function connectDb() {
   return await createConnection({
     type: "postgres",
@@ -35,3 +33,5 @@ async function start() {
   await connectDb();
   await client.login(env.discord.secret);
 }
+
+start().catch(console.error);

@@ -4,6 +4,7 @@ services:
       target: dev
     volumes: 
       - ./dist:/usr/app/dist
+      - ./config:/usr/app/config
     ports:
       - "9229:9229"
     environment: 

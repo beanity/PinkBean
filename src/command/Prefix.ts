@@ -10,14 +10,14 @@ export class Prefix extends Command {
   private space: Option;
   constructor() {
     super("prefix", Color.BLUE, true);
-    this.space = new Option("-s", "include a space");
+    this.space = new Option("-s", "include a following space");
     this.arg = new Argument({ name: "CONTENT" });
     this.addCustomArg(this.arg);
     this.addCustomOptions(this.space);
   }
 
   public description() {
-    return `Change the current prefix ${Md.pre(this.prefix)} to a new one.`;
+    return `Change the current prefix to ${Md.pre(this.arg.name)}.`;
   }
 
   public briefDescription() {
@@ -25,25 +25,23 @@ export class Prefix extends Command {
   }
 
   public customArgDescriptions() {
-    return [
-      "any text without spaces. Automatically removes any surrounding spaces",
-    ];
+    return ["any text without spaces."];
   }
 
   public customExamples(): CommandExample[] {
-    const prefix = "foo";
+    const prefix = "#";
     return [
       {
         cmd: `${this.fullName} ${prefix}`,
         explain: `change prefix to ${Md.pre(
           prefix
-        )} without any spaces. E.g., ${Md.pre(prefix + "help")}`,
+        )} without any following spaces. E.g., ${Md.pre(prefix + "help")}`,
       },
       {
         cmd: `${this.fullName} ${this.space} ${prefix}`,
         explain: `change prefix to ${Md.pre(
           prefix
-        )} with a space. E.g., ${Md.pre(prefix + " help")}`,
+        )} with a following space. E.g., ${Md.pre(prefix + " help")}`,
       },
     ];
   }
@@ -64,9 +62,11 @@ export class Prefix extends Command {
 
     try {
       await this.save(discord.guild.id, prefix);
-      embed.setTitle(`Prefix is now set to ${Md.pre(prefix)}`);
+      embed.setAuthor("Prefix changed");
       embed.setDescription(
-        `${this.detail()}. E.g., ${Md.pre(`${prefix}help`)}`
+        `Command prefix is now ${Md.bld(
+          Md.pre(prefix.content)
+        )} ${this.spaceDetail()}. E.g., ${Md.pre(`${prefix}help`)}`
       );
     } catch (e) {
       embed.setDescription("Unable to save prefix");
@@ -85,7 +85,12 @@ export class Prefix extends Command {
     this.prefix = prefix;
   }
 
-  private detail() {
-    return (this.prefix.space ? "with a " : "without any ") + "space";
+  private spaceDetail() {
+    const hasSpace = this.prefix.space;
+    return (
+      (hasSpace ? "with a " : "without any ") +
+      "following space" +
+      (hasSpace ? "" : "s")
+    );
   }
 }

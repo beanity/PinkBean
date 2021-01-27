@@ -63,7 +63,7 @@ export class Option {
    * @param long long option name
    */
   public static isLong(long: string) {
-    return /^--\w+$/.test(long);
+    return /^--[A-Za-z]+$/.test(long);
   }
 
   /**

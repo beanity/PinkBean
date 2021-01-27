@@ -113,7 +113,7 @@ export abstract class Command {
     this.cooldown = 0;
     this.argDescriptions = [];
     this.examples = [];
-    this.help = new Option("-h", "show command help");
+    this.help = new Option("-h", "show command info");
     this.invalidOpt = "";
     this.longestOptionLength = 0;
     this.optionsMap = new Map();
@@ -283,7 +283,7 @@ export abstract class Command {
     return (
       this.usageInfo() +
       this.aliasInfo() +
-      (this.adminOnly ? "**(Admin and above only)**\n" : "") +
+      (this.adminOnly ? "**(Admin only)**\n" : "") +
       this.description() +
       "\n\n" +
       this.argInfo() +
@@ -331,7 +331,7 @@ export abstract class Command {
 
   private helpEmbed() {
     const embed = this.embed(Color.BLUE);
-    embed.setTitle(`Command Help`);
+    embed.setAuthor(`Command Info`);
     embed.setDescription(this.helpDescription());
     embed.addFields(this.examplesEmbedFields());
     return embed;
@@ -367,28 +367,28 @@ export abstract class Command {
     return Md.bld("Options:") + Md.cb(descriptions) + "\n";
   }
 
-  private parse(inputs: string[]) {
+  private parse(args: string[]) {
     let previousOpt: Option | undefined;
-    for (const input of inputs) {
-      if (input.startsWith("-")) {
-        previousOpt = this.parseOption(input);
+    for (const arg of args) {
+      if (this.help.enabled || this.invalidOpt) return;
+      if (Option.isOption(arg)) {
+        previousOpt = this.parseOption(arg);
       } else if (previousOpt && previousOpt.arg) {
-        previousOpt.arg.add(input);
+        previousOpt.arg.add(arg);
         previousOpt = void 0;
       } else {
-        this.customArg?.add(input);
+        this.customArg?.add(arg);
       }
-      if (this.help.enabled) return;
     }
   }
 
-  private parseOption(opt: string) {
-    const option = this.optionsMap.get(opt);
+  private parseOption(arg: string) {
+    const option = this.optionsMap.get(arg);
     if (option) {
       option.enable();
       return option;
     }
-    if (!this.invalidOpt) this.invalidOpt = opt;
+    if (!this.invalidOpt) this.invalidOpt = arg;
   }
 
   private setDefaultArgDescriptions() {
@@ -416,6 +416,7 @@ export abstract class Command {
     const usage = `${this.fullName}${
       this.customArg ? " " + this.customArg.toString() : ""
     }`;
+    // return usage;
     return `${Md.cb(usage)}\n`;
   }
 
@@ -427,5 +428,5 @@ export abstract class Command {
   /**
    * Continue running the command after processing help.
    */
-  protected abstract async continue(data: DiscordData): Promise<void>;
+  protected abstract continue(data: DiscordData): Promise<void>;
 }

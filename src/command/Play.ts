@@ -35,11 +35,11 @@ export class Play extends Command {
   }
 
   public description() {
-    return "Play a linked youtube song or search keywords on YouTube. Resume playing if nothing is provided.";
+    return "Play a youtube link or search keywords on YouTube. Resume playing if nothing is provided.";
   }
 
   public briefDescription() {
-    return "Play a linked youtube song or search keywords on YouTube";
+    return "Play a youtube link or search keywords on YouTube";
   }
 
   public customExamples(): CommandExample[] {

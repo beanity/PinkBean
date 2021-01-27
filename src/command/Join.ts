@@ -37,7 +37,7 @@ export class Join extends Command {
     if (!botVoice.connection || forceMove) {
       const connection = await rqtrVoice.channel.join();
       connection.on("error", console.error);
-      await connection.voice.setSelfDeaf(true);
+      await connection.voice?.setSelfDeaf(true);
       discord.channel.send(
         this.embed().setDescription(`Joined ${rqtrVoice.channel}`)
       );

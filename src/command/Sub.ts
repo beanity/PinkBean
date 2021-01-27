@@ -1,5 +1,5 @@
 import { Time as TimeEntity, News as NewsEntity } from "../db/entity";
-import { Color, Discord } from "../lib";
+import { _, Color, Discord } from "../lib";
 import { DiscordData, Command, CommandExample, Option } from "./base";
 import { getRepository } from "typeorm";
 
@@ -7,13 +7,13 @@ export class Sub extends Command {
   private timer: Option;
   constructor() {
     super("sub", Color.PINK, true);
-    this.timer = new Option("-t", "subscribe to time");
+    this.timer = new Option("-t", "subscribe to timer");
     this.addCustomOptions(this.timer);
     this.enableCooldown(2000);
   }
 
   public description() {
-    return "Subscribe news or time periodically in a channel. Subscribe to news by default.";
+    return "Subscribe to news or timer in a channel so that the message is displayed automatically. Subscribe to news by default.";
   }
 
   public briefDescription() {
@@ -28,7 +28,7 @@ export class Sub extends Command {
       },
       {
         cmd: `${this.fullName} ${this.timer}`,
-        explain: "subscribe to time",
+        explain: "subscribe to timer",
       },
     ];
   }
@@ -83,7 +83,7 @@ export class Sub extends Command {
       shouldSub = true;
     }
     channel
-      .send(this.subEmbed(shouldSub, "time", channel))
+      .send(this.subEmbed(shouldSub, "timer", channel))
       .catch(console.error);
   }
 
@@ -104,7 +104,17 @@ export class Sub extends Command {
     topic: string,
     channel: Discord.Channel
   ) {
-    const sub = shouldSub ? "Subcribed to" : "Unsubscribed to";
-    return this.embed().setDescription(`${sub} ${topic} in ${channel}`);
+    let description = "Unsubscribed to";
+    let author = "";
+
+    if (shouldSub) {
+      author = `${_.capitalize(topic)} subscribed`;
+      description = "Subcribed to";
+    }
+
+    const embed = this.embed();
+    embed.setAuthor(author);
+    embed.setDescription(`${description} ${topic} in ${channel}`);
+    return embed;
   }
 }

@@ -26,9 +26,15 @@ export class Ping extends Command {
       .format("y [years], w [weeks], d [days], h [hours], m [minutes]");
     const embed = this.embed();
     embed.addFields(
-      { name: "Ping", value: `${ping} ms` },
-      { name: "Uptime", value: uptime }
+      { name: "Ping", value: `${ping} ms`, inline: true },
+      { name: "Uptime", value: uptime, inline: true }
     );
-    discord.channel.send(embed).catch(console.error);
+    const sent = await discord.channel.send(embed);
+    const secs = Math.abs(
+      (discord.message.createdTimestamp - sent.createdTimestamp) / 1000
+    );
+    await sent.edit(
+      `${discord.client.user?.username} responded in *${secs} seconds*`
+    );
   }
 }
