@@ -2,6 +2,9 @@ version: "3.7"
 
 services:
   app:
+    environment: 
+      - NODE_ENV=production
+    command: ["npm", "start"]
     restart: always
 
   db:
