@@ -93,12 +93,9 @@ export class Rank extends Command {
       discord.channel.send(this.noResultsEmbed()).catch(console.error);
       return;
     }
-    let embed: Discord.MessageEmbed;
-    if (this.isOverviewData(data)) {
-      embed = this.overviewEmbed(data);
-    } else {
-      embed = this.jwEmbed(data);
-    }
+    const embed = this.isOverviewData(data)
+      ? this.overviewEmbed(data)
+      : this.jwEmbed(data);
     discord.channel.send(embed).catch(console.error);
   }
 
@@ -175,7 +172,7 @@ export class Rank extends Command {
     data.list.forEach((char, i) =>
       fields.push({
         name: `${i + 1}. ${char.name}`,
-        value: `lvl ${char.level}`,
+        value: `lvl ${char.level}\n(${char.experiencePerc})`,
         inline: true,
       })
     );
@@ -188,6 +185,8 @@ export class Rank extends Command {
     if (i !== -1) {
       embed.setDescription(`${data.character.name}'s ranking: ${i + 1}`);
       embed.setThumbnail(data.character.image);
+    } else if (data.list.length) {
+      embed.setThumbnail(data.list[0].image);
     }
     return embed;
   }
