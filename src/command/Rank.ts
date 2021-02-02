@@ -172,14 +172,9 @@ export class Rank extends Command {
     data.list.forEach((char, i) =>
       fields.push({
         name: `${i + 1}. ${char.name}`,
-        value: `lvl ${char.level}\n${char.experience}\n(${char.experiencePerc})`,
-        // value: `**lvl ${char.level}**\n${this.formatNum(char.experience)}\n(${
-        //   char.experiencePerc
-        // })`,
-        // value: `lvl ${char.level}\n${this.formatNum(char.experience)}\n(${
-        //   char.experiencePerc
-        // })`,
-        // value: `lvl ${char.level}\n(${this.formatNum(char.experience)})`,
+        value: `lvl ${char.level}\n${this.formatNum(char.experience)}\n(${
+          char.experiencePerc
+        })`,
         inline: true,
       })
     );
