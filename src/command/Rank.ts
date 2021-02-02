@@ -75,6 +75,10 @@ export class Rank extends Command {
         cmd: `${this.fullName} ${this.jw} foo`,
         explain: "show top-ranked characters of the same job as foo",
       },
+      {
+        cmd: `${this.fullName} ${this.eu} ${this.jw} foo`,
+        explain: "show top-ranked characters of the same job as foo in EU",
+      },
     ];
   }
 
