@@ -186,12 +186,7 @@ export class Rank extends Command {
     const embed = this.embed();
     embed.setTitle(`${data.character.job} in ${data.character.world}`);
     embed.addFields(fields);
-    if (i !== -1) {
-      embed.setDescription(`${data.character.name}'s ranking: ${i + 1}`);
-      embed.setThumbnail(data.character.image);
-    } else if (data.list.length) {
-      embed.setThumbnail(data.list[0].image);
-    }
+    embed.setThumbnail(data.character.image);
     return embed;
   }
 }
