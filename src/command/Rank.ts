@@ -208,7 +208,7 @@ export class Rank extends Command {
       symbol = "▼";
     }
     const rank = this.formatNum(levelMove.rank);
-    const gap = this.formatNum(levelMove.gap);
+    const gap = this.formatNum(Math.abs(levelMove.gap));
     let des = `${rank}`;
     if (levelMove.gap !== 0) {
       des += ` (${symbol}${gap})`;
