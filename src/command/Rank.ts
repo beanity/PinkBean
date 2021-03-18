@@ -1,30 +1,31 @@
-import { _, Color, env, Discord, numeral } from "../lib";
+import { _, Color, env, Discord } from "../lib";
 import { Argument, DiscordData, Command, CommandExample, Option } from "./base";
 import got from "got";
 
-type RankDirection = "up" | "down" | "draw";
-
 interface LevelMove {
-  rank: string;
-  rankDirection: RankDirection;
-  rankDistance: string;
+  rank: number;
+  gap: number;
 }
 
 interface Character {
   name: string;
-  level: string;
+  level: number;
   image: string;
   job: string;
+  jobId: number;
   world: string;
-  experience: string;
-  experiencePerc: string;
+  worldId: number;
+  experience: number;
+  experiencePerc: number;
 }
 
 interface OverviewData extends Character {
-  overallLevelMove: LevelMove;
-  jobLevelMove: LevelMove;
-  worldLevelMove: LevelMove;
-  legionRank: string;
+  overallData: LevelMove;
+  worldData: LevelMove;
+  jobData: LevelMove;
+  legionData?: LevelMove & { level: number; raidPower: number };
+  achievementData?: LevelMove & { score: number; tier: string };
+  fameData: LevelMove & { total: number };
 }
 
 type Ranking = Character & LevelMove;
@@ -34,7 +35,7 @@ interface JwData {
   list: Ranking[];
 }
 
-type ResponseData = OverviewData | JwData;
+type RankData = OverviewData | JwData;
 
 export class Rank extends Command {
   private arg: Argument;
@@ -87,7 +88,7 @@ export class Rank extends Command {
     if (!name) return;
     const eu = this.eu.enabled ? "?region=eu" : "";
     const path = this.jw.enabled ? "/job-world" : "";
-    let data: ResponseData | undefined;
+    let data: RankData | undefined;
     try {
       data = await got(`${env.server}/api/rank/${name}${path}${eu}`).json();
     } catch (e) {
@@ -97,48 +98,97 @@ export class Rank extends Command {
       discord.channel.send(this.noResultsEmbed()).catch(console.error);
       return;
     }
+
     const embed = this.isOverviewData(data)
       ? this.overviewEmbed(data)
       : this.jwEmbed(data);
     discord.channel.send(embed).catch(console.error);
   }
 
-  private isOverviewData(data: ResponseData): data is OverviewData {
+  private isOverviewData(data: RankData): data is OverviewData {
     return (data as JwData).list === undefined;
   }
 
   private overviewEmbed(data: OverviewData) {
+    const na = "N/A";
     const fields: Discord.EmbedFieldData[] = [
       {
         name: "Level",
         value: this.getLevel(data.level, data.experiencePerc),
         inline: true,
       },
+      { name: "Exp", value: this.formatNum(data.experience), inline: true },
       { name: "World", value: data.world, inline: true },
-      { name: "Job", value: data.job, inline: true },
+      { name: "Job", value: data.job || na, inline: true },
       {
-        name: "Overall rank",
-        value: this.getLevelMove(data.overallLevelMove),
+        name: "Fame",
+        value: this.formatNum(data.fameData.total),
         inline: true,
       },
       {
-        name: "World rank",
-        value: this.getLevelMove(data.worldLevelMove),
+        name: "Fame Rank",
+        value: this.getLevelMove(data.fameData),
         inline: true,
       },
       {
-        name: "Job rank",
-        value: this.getLevelMove(data.jobLevelMove),
+        name: "Overall Rank",
+        value: this.getLevelMove(data.overallData),
         inline: true,
       },
       {
-        name: "Legion rank",
-        value: data.legionRank
-          ? this.formatNum(data.legionRank)
-          : "Not available",
+        name: "World Rank",
+        value: this.getLevelMove(data.worldData),
+        inline: true,
+      },
+      {
+        name: "Job Rank",
+        value: this.getLevelMove(data.jobData),
         inline: true,
       },
     ];
+
+    const legionData = data.legionData;
+    if (legionData) {
+      fields.push(
+        {
+          name: "Legion Rank",
+          value: this.getLevelMove(legionData),
+          inline: true,
+        },
+        {
+          name: "Legion Level",
+          value: this.formatNum(legionData.level),
+          inline: true,
+        },
+        {
+          name: "Raid Power",
+          value: this.formatNum(legionData.raidPower),
+          inline: true,
+        }
+      );
+    }
+
+    const achievementData = data.achievementData;
+    if (achievementData) {
+      fields.push(
+        {
+          name: "Achievement Rank",
+          value: this.getLevelMove(achievementData),
+          inline: true,
+        },
+        {
+          name: "Achievement Tier",
+          value: achievementData.tier,
+          inline: true,
+        },
+        {
+          name: "Achievement Score",
+          value: this.formatNum(achievementData.score),
+          inline: true,
+        }
+      );
+    }
+
     const embed = this.embed();
     embed.setTitle(data.name);
     embed.addFields(fields);
@@ -146,29 +196,24 @@ export class Rank extends Command {
     return embed;
   }
 
-  private getLevel(level: string, perc: string) {
-    if (numeral(perc).value()) {
-      level += ` (${perc})`;
-    }
-    return level;
+  private getLevel(level: number, perc: number) {
+    return `${level} (${(perc * 100).toFixed(2)}%)`;
   }
 
   private getLevelMove(levelMove: LevelMove) {
     let symbol = "";
-    switch (levelMove.rankDirection) {
-      case "up":
-        symbol = `▲`;
-        break;
-      case "down":
-        symbol = `▼`;
-        break;
+    if (levelMove.gap > 0) {
+      symbol = "▲";
+    } else if (levelMove.gap < 0) {
+      symbol = "▼";
     }
-    let distanceInfo = "";
-    symbol &&
-      (distanceInfo = `${symbol}${this.formatNum(levelMove.rankDistance)}`);
-    let rank = this.formatNum(levelMove.rank);
-    distanceInfo && (rank = `${rank} (${distanceInfo})`);
-    return rank || "Not available";
+    const rank = this.formatNum(levelMove.rank);
+    const gap = this.formatNum(levelMove.gap);
+    let des = `${rank}`;
+    if (levelMove.gap !== 0) {
+      des += ` (${symbol}${gap})`;
+    }
+    return des;
   }
 
   private jwEmbed(data: JwData) {
@@ -176,7 +221,9 @@ export class Rank extends Command {
     data.list.forEach((char, i) =>
       fields.push({
         name: `${i + 1}. ${char.name}`,
-        value: `lvl ${char.level}\n(${char.experiencePerc})`,
+        value: `lvl ${char.level}\n(${(char.experiencePerc * 100).toFixed(
+          2
+        )}%)`,
         inline: true,
       })
     );
