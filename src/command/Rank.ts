@@ -18,6 +18,7 @@ interface Character {
   experience: number;
   experiencePerc: number;
   jobWorldRank?: number;
+  rank?: number;
 }
 
 interface OverviewData extends Character {
@@ -221,7 +222,7 @@ export class Rank extends Command {
     const fields: Discord.EmbedFieldData[] = [];
     data.list.forEach((char, i) =>
       fields.push({
-        name: `${i + 1}. ${char.name}`,
+        name: `${char.rank + 1}. ${char.name}`,
         value: `lvl ${char.level}\n(${(char.experiencePerc * 100).toFixed(
           2
         )}%)`,
