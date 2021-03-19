@@ -222,7 +222,7 @@ export class Rank extends Command {
     const fields: Discord.EmbedFieldData[] = [];
     data.list.forEach((char, i) =>
       fields.push({
-        name: `${char.rank + 1}. ${char.name}`,
+        name: `${char.rank}. ${char.name}`,
         value: `lvl ${char.level}\n(${(char.experiencePerc * 100).toFixed(
           2
         )}%)`,
