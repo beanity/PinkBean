@@ -17,6 +17,7 @@ interface Character {
   worldId: number;
   experience: number;
   experiencePerc: number;
+  jobWorldRank?: number;
 }
 
 interface OverviewData extends Character {
@@ -227,14 +228,11 @@ export class Rank extends Command {
         inline: true,
       })
     );
-    const i = data.list.findIndex(
-      (char) => char.name.toLowerCase() === data.character.name.toLowerCase()
-    );
     const embed = this.embed();
     embed.setTitle(`${data.character.job} in ${data.character.world}`);
     embed.addFields(fields);
-    if (i !== -1) {
-      embed.setDescription(`${data.character.name}'s ranking: ${i + 1}`);
+    if (data.character.jobWorldRank) {
+      embed.setDescription(`${data.character.name}'s ranking: ${data.character.jobWorldRank}`);
     }
     embed.setThumbnail(data.character.image);
     return embed;
