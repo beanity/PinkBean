@@ -54,6 +54,7 @@ export class Rank extends Command {
     // );
     this.addCustomArg(this.arg);
     // this.addCustomOptions(this.eu, this.jw);
+    this.addCustomOptions(this.eu);
   }
 
   public description() {
