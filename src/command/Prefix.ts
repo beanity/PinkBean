@@ -72,7 +72,7 @@ export class Prefix extends Command {
       embed.setDescription("Unable to save prefix");
       console.error(e);
     }
-    discord.channel.send(embed).catch(console.error);
+    discord.channel.send({ embeds: [embed] }).catch(console.error);
   }
 
   private async save(guildId: string, prefix: PrefixModel) {

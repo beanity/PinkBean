@@ -4,6 +4,7 @@ import { Color, Discord, Md, async, env } from "../lib";
 import * as Entity from "../db/entity";
 import { getRepository } from "typeorm";
 import { Task } from "./Task";
+import { EmbedFieldData } from "discord.js";
 
 export class Guild extends Task {
   private channels: Discord.TextChannel[];
@@ -25,7 +26,7 @@ export class Guild extends Task {
       this.sendGreeting(guild).catch(console.error);
       async
         .eachLimit(this.channels, 5, async (channel) =>
-          channel.send(this.buildEmbed(guild, true)).catch(console.error)
+          channel.send({ embeds: [this.buildEmbed(guild, true)] }).catch(console.error)
         )
         .catch(console.error);
     });
@@ -34,7 +35,7 @@ export class Guild extends Task {
       try {
         await this.deleteRecords(guild);
         await async.eachLimit(this.channels, 5, async (channel) =>
-          channel.send(this.buildEmbed(guild, false)).catch(console.error)
+          channel.send({ embeds: [this.buildEmbed(guild, false)] }).catch(console.error)
         );
       } catch (e) {
         console.error(e);
@@ -63,7 +64,7 @@ export class Guild extends Task {
     let channel = guild.systemChannel || void 0;
     if (!channel) {
       channel = guild.channels.cache.find(
-        (channel) => channel.type === "text" && !channel.deleted
+        (channel) => channel.type === "GUILD_TEXT" && !channel.deleted
       ) as Discord.TextChannel | undefined;
     }
 
@@ -103,7 +104,7 @@ export class Guild extends Task {
       )} for support.`
     );
 
-    await channel.send(embed);
+    await channel.send({ embeds: [embed] });
   }
 
   private buildEmbed(guild: Discord.Guild, isCreate: boolean) {
@@ -132,7 +133,7 @@ export class Guild extends Task {
       },
       {
         name: "Member Count",
-        value: guild.memberCount,
+        value: guild.memberCount.toString(),
         inline: true,
       },
     ]);

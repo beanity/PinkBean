@@ -57,7 +57,7 @@ export class Sub extends Command {
       shouldSub = true;
     }
     channel
-      .send(this.subEmbed(shouldSub, "news", channel))
+      .send({ embeds: [this.subEmbed(shouldSub, "news", channel)] })
       .catch(console.error);
   }
 
@@ -83,7 +83,7 @@ export class Sub extends Command {
       shouldSub = true;
     }
     channel
-      .send(this.subEmbed(shouldSub, "timer", channel))
+      .send({ embeds: [this.subEmbed(shouldSub, "timer", channel)] })
       .catch(console.error);
   }
 
@@ -95,7 +95,7 @@ export class Sub extends Command {
     const channel = await client.channels.fetch(channelId);
     if (channel instanceof Discord.TextChannel) {
       const msg = await channel.messages.fetch(messageId);
-      msg.delete({ timeout: 60000 }).catch(console.error);
+      setTimeout(() => msg.delete().catch(console.error), 60000);
     }
   }
 

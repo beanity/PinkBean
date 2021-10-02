@@ -57,10 +57,10 @@ export class Item extends Command {
     }
 
     if (_.isEmpty(itemData)) {
-      discord.channel.send(this.noResultsEmbed()).catch(console.error);
+      discord.channel.send({ embeds: [this.noResultsEmbed()] }).catch(console.error);
       return;
     }
-    discord.channel.send(this.itemEmbed(itemData)).catch(console.error);
+    discord.channel.send({ embeds: [this.itemEmbed(itemData)] }).catch(console.error);
   }
 
   private getCategory(typeInfo: any) {

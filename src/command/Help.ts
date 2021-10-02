@@ -99,19 +99,7 @@ ${this.getCmdContent(generalCmdInfos, lengthInfo)}
       BotCommand.Mob,
     ];
   }
-  private musicCmds(): (new () => Command)[] {
-    return [
-      BotCommand.Play,
-      BotCommand.Current,
-      BotCommand.Skip,
-      BotCommand.Queue,
-      BotCommand.Shuffle,
-      BotCommand.Pause,
-      BotCommand.Resume,
-      BotCommand.Join,
-      BotCommand.Leave,
-    ];
-  }
+  
   private generalCmds(): (new () => Command)[] {
     return [
       BotCommand.Prefix,

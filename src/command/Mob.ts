@@ -46,10 +46,10 @@ export class Mob extends Command {
     }
 
     if (_.isEmpty(data) || _.isEmpty(data.meta)) {
-      discord.channel.send(this.noResultsEmbed()).catch(console.error);
+      discord.channel.send({ embeds: [this.noResultsEmbed()] }).catch(console.error);
       return;
     }
-    discord.channel.send(this.mobEmbed(data)).catch(console.error);
+    discord.channel.send({ embeds: [this.mobEmbed(data)] }).catch(console.error);
   }
 
   private mobEmbed(data: any) {

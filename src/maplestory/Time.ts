@@ -42,28 +42,6 @@ export class Time {
     return moment.duration(monday.diff(moment()));
   }
 
-  /**
-   * Time left until next Kritias invasion.
-   * Ref: https://forums.maplestory.nexon.net/discussion/9786/kritias-invasion-guide
-   */
-  static get invasion() {
-    const hours = [8, 10, 12, 14, 16, 18, 20, 22];
-    const day = moment.utc().startOf("day");
-    const now = moment.utc();
-    let invasionTime = day.hour(hours[0]);
-    for (let i = 0; i < hours.length; i++) {
-      const time = day.hour(hours[i]);
-      if (now.isSameOrBefore(time)) {
-        invasionTime = time;
-        break;
-      }
-      if (i === hours.length - 1) {
-        invasionTime = day.add(1, "day").hour(hours[0]);
-      }
-    }
-    return moment.duration(invasionTime.diff(now));
-  }
-
   public static formattedTime(format = "h:mm A, dddd, MMMM Do YYYY") {
     return Time.time.format(format);
   }

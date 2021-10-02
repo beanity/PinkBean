@@ -2,10 +2,10 @@ import { SetParam, commander, guildMaster } from "../manager";
 import { DiscordData } from "../command/base";
 import { Prefix as PrefixEntity } from "../db/entity";
 import { Discord } from "../lib";
-import { Prefix, Song, SongData } from "../model";
-import { redis } from "../module";
+import { Prefix } from "../model";
 import { getRepository } from "typeorm";
 import { Task } from "./Task";
+import { Permissions } from "discord.js";
 
 export class Message extends Task {
   constructor(client: Discord.Client) {
@@ -30,7 +30,7 @@ export class Message extends Task {
       return;
     }
 
-    const discord: DiscordData = {
+    const discordData: DiscordData = {
       client: this.client,
       clientUser: this.client.user,
       message: message,
@@ -41,12 +41,18 @@ export class Message extends Task {
       guild: message.guild,
     };
 
-    if (
-      !discord.bot
-        .permissionsIn(message.channel)
-        .has(["VIEW_CHANNEL", "SEND_MESSAGES", "EMBED_LINKS"])
-    ) {
-      return;
+    if ("permissionsFor" in discordData.channel) {
+      if (
+        !discordData.channel
+          .permissionsFor(discordData.bot)
+          .has([
+            Permissions.FLAGS.VIEW_CHANNEL,
+            Permissions.FLAGS.SEND_MESSAGES,
+            Permissions.FLAGS.EMBED_LINKS,
+          ])
+      ) {
+        return;
+      }
     }
 
     const guildId = message.guild.id;
@@ -65,17 +71,14 @@ export class Message extends Task {
 
     if (!command) return;
 
-    command.execute({ inputs, discord, invokedName }).catch(console.error);
+    command
+      .execute({ inputs, discord: discordData, invokedName })
+      .catch(console.error);
   }
 
   private async setData(guildId: string) {
     const guildData: SetParam = {};
     guildData.prefix = await this.getPrefix(guildId);
-    const songsDataSerialized = await redis.get(`${guildId}:songs`);
-    if (songsDataSerialized) {
-      const songsData: SongData[] = JSON.parse(songsDataSerialized);
-      guildData.songs = songsData.map((data) => new Song(data));
-    }
     guildMaster.set(guildId, guildData);
   }
 

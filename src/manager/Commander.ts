@@ -35,15 +35,6 @@ class Commander {
 
 const commander = new Commander();
 const commands = [
-  BotCommand.Join,
-  BotCommand.Leave,
-  BotCommand.Play,
-  BotCommand.Pause,
-  BotCommand.Resume,
-  BotCommand.Skip,
-  BotCommand.Queue,
-  BotCommand.Shuffle,
-  BotCommand.Current,
   BotCommand.Ping,
   BotCommand.Time,
   BotCommand.Prefix,

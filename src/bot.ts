@@ -2,10 +2,13 @@ import { env, Discord } from "./lib";
 import * as Task from "./task";
 import { createConnection } from "typeorm";
 import path = require("path");
+import { Intents } from "discord.js";
 
 process.on("unhandledRejection", console.error);
 
-const client = new Discord.Client();
+const client = new Discord.Client({
+  intents: [Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILDS]
+});
 
 client.on("ready", () => {
   console.log(`Logged in as ${client?.user?.username}!`);

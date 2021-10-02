@@ -113,7 +113,7 @@ export class News extends Command {
       const parsed = this.arg.parse();
       if (parsed.errorMsg) {
         discord.channel
-          .send(this.embed().setDescription(parsed.errorMsg))
+          .send({ embeds: [this.embed().setDescription(parsed.errorMsg)] })
           .catch(console.error);
         return;
       }
@@ -127,10 +127,10 @@ export class News extends Command {
       console.error(e);
     }
     if (_.isEmpty(news)) {
-      discord.channel.send(this.noResultsEmbed()).catch(console.error);
+      discord.channel.send({ embeds: [this.noResultsEmbed()] }).catch(console.error);
       return;
     }
-    discord.channel.send(this.newsEmbed(news!)).catch(console.error);
+    discord.channel.send({ embeds: [this.newsEmbed(news!)] }).catch(console.error);
   }
 
   public newsEmbed(news: NewsPost) {

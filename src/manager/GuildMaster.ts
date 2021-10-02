@@ -1,8 +1,7 @@
-import { Guild, Prefix, Song } from "../model";
+import { Guild, Prefix } from "../model";
 
 export interface SetParam {
   prefix?: Prefix;
-  songs?: Song[];
 }
 
 class GuildMaster {
@@ -20,10 +19,9 @@ class GuildMaster {
     return this.guildMap.has(guildId);
   }
 
-  public set(guildId: string, { prefix, songs }: SetParam = {}) {
+  public set(guildId: string, { prefix }: SetParam = {}) {
     const guild = this.get(guildId);
     if (prefix) guild.prefix = prefix;
-    if (songs) guild.queue.songs = songs;
   }
 
   public delete(guildId: string) {

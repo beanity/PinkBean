@@ -1,3 +1,4 @@
+import { Permissions } from "discord.js";
 import { Color } from "../lib";
 import { DiscordData, Command, CommandExample } from "./base";
 
@@ -20,12 +21,13 @@ export class Invite extends Command {
   }
 
   public async continue(discord: DiscordData) {
-    const link = await discord.guild.client.generateInvite({
-      permissions: ["ADMINISTRATOR"],
+    const link = discord.guild.client.generateInvite({
+      scopes: ['bot'],
+      permissions: [Permissions.FLAGS.ADMINISTRATOR],
     });
     const embed = this.embed();
     embed.setTitle("Invite Link");
     embed.setDescription(link);
-    discord.channel.send(embed).catch(console.error);
+    discord.channel.send({ embeds: [embed] }).catch(console.error);
   }
 }

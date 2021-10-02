@@ -24,7 +24,7 @@ export class Subscription extends Task {
     if (!this.bot) return;
     const repo = getRepository(Entity.Time);
     const guilds = await repo.find({
-      where: { id: In(this.client.guilds.cache.keyArray()) },
+      where: { id: In([...this.client.guilds.cache.keys()]) },
     });
     const mapped = (
       await async.mapLimit(guilds, 5, async (guild) =>
@@ -48,7 +48,7 @@ export class Subscription extends Task {
     const embed = new Time().timeEmbed();
 
     if (!timeSub.message) {
-      timeSub.message = (await channel.send(embed)).id;
+      timeSub.message = (await channel.send({ embeds: [embed] })).id;
       return timeSub;
     }
 
@@ -61,9 +61,9 @@ export class Subscription extends Task {
     }
 
     if (msg) {
-      await msg.edit(embed);
+      await msg.edit({ embeds: [embed] });
     } else {
-      timeSub.message = (await channel.send(embed)).id;
+      timeSub.message = (await channel.send({ embeds: [embed] })).id;
       return timeSub;
     }
   }
@@ -74,7 +74,7 @@ export class Subscription extends Task {
 
     const repo = getRepository(Entity.News);
     const guilds = await repo.find({
-      where: { id: In(this.client.guilds.cache.keyArray()) },
+      where: { id: In([...this.client.guilds.cache.keys()]) },
     });
     await async.eachLimit(guilds, 5, async (guild) =>
       this.sendNews(posts, guild).catch(console.error)
@@ -90,7 +90,7 @@ export class Subscription extends Task {
     )
       return;
     for (const post of posts) {
-      await channel.send(new News().newsEmbed(post));
+      await channel.send({ embeds: [new News().newsEmbed(post)] });
     }
   }
 }

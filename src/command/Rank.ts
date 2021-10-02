@@ -42,18 +42,18 @@ type RankData = OverviewData | JwData;
 export class Rank extends Command {
   private arg: Argument;
   private eu: Option;
-  private jw: Option;
+  // private jw: Option;
 
   constructor() {
     super("rank", Color.PINK);
     this.arg = new Argument({ name: "NAME", variadic: true });
     this.eu = new Option("-e", "search on EU server");
-    this.jw = new Option(
-      "-j",
-      "show top-ranked characters who have the same job as the provided character"
-    );
+    // this.jw = new Option(
+    //   "-j",
+    //   "show top-ranked characters who have the same job as the provided character"
+    // );
     this.addCustomArg(this.arg);
-    this.addCustomOptions(this.eu, this.jw);
+    // this.addCustomOptions(this.eu, this.jw);
   }
 
   public description() {
@@ -74,14 +74,14 @@ export class Rank extends Command {
         cmd: `${this.fullName} ${this.eu} foo`,
         explain: "show foo's ranking overview in EU",
       },
-      {
-        cmd: `${this.fullName} ${this.jw} foo`,
-        explain: "show top-ranked characters of the same job as foo",
-      },
-      {
-        cmd: `${this.fullName} ${this.eu} ${this.jw} foo`,
-        explain: "show top-ranked characters of the same job as foo in EU",
-      },
+      // {
+      //   cmd: `${this.fullName} ${this.jw} foo`,
+      //   explain: "show top-ranked characters of the same job as foo",
+      // },
+      // {
+      //   cmd: `${this.fullName} ${this.eu} ${this.jw} foo`,
+      //   explain: "show top-ranked characters of the same job as foo in EU",
+      // },
     ];
   }
 
@@ -89,7 +89,8 @@ export class Rank extends Command {
     const name = this.arg.input;
     if (!name) return;
     const eu = this.eu.enabled ? "?region=eu" : "";
-    const path = this.jw.enabled ? "/job-world" : "";
+    // const path = this.jw.enabled ? "/job-world" : "";
+    const path = "";
     let data: RankData | undefined;
     try {
       data = await got(`${env.server}/api/rank/${name}${path}${eu}`).json();
@@ -97,14 +98,14 @@ export class Rank extends Command {
       console.error(e);
     }
     if (!data || _.isEmpty(data)) {
-      discord.channel.send(this.noResultsEmbed()).catch(console.error);
+      discord.channel.send({ embeds: [this.noResultsEmbed()] }).catch(console.error);
       return;
     }
 
     const embed = this.isOverviewData(data)
       ? this.overviewEmbed(data)
       : this.jwEmbed(data);
-    discord.channel.send(embed).catch(console.error);
+    discord.channel.send({ embeds: [embed] }).catch(console.error);
   }
 
   private isOverviewData(data: RankData): data is OverviewData {

@@ -25,6 +25,6 @@ export class Daily extends Command {
       "Daily resets in",
       Time.formatDuration(Time.daily)
     );
-    discord.channel.send(embed).catch(console.error);
+    discord.channel.send({ embeds: [embed] }).catch(console.error);
   }
 }

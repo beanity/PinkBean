@@ -44,7 +44,8 @@ export interface DiscordData {
   /**
    * The channel that the message was sent in.
    */
-  channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel;
+  // channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel;
+  channel: Discord.TextBasedChannels;
   /**
    * The bot as a guild member.
    */
@@ -136,24 +137,24 @@ export abstract class Command {
 
     if (this.help.enabled) {
       this.examples = this.customExamples();
-      discord.channel.send(this.helpEmbed()).catch(console.error);
+      discord.channel.send({ embeds: [this.helpEmbed()] }).catch(console.error);
       return;
     }
 
     if (this.invalidOpt) {
-      discord.channel.send(this.invalidOptionEmbed()).catch(console.error);
+      discord.channel.send({ embeds: [this.invalidOptionEmbed()] }).catch(console.error);
       return;
     }
 
-    if (this.adminOnly && !discord.member.hasPermission("ADMINISTRATOR")) {
-      discord.channel.send(this.adminOnlyEmbed()).catch(console.error);
+    if (this.adminOnly && !discord.member.permissions.has("ADMINISTRATOR")) {
+      discord.channel.send({ embeds: [this.adminOnlyEmbed()] }).catch(console.error);
       return;
     }
 
     if (this.cooldown) {
       const cooldowns = guildMaster.get(discord.guild.id).cooldowns;
       if (cooldowns.has(this.name)) {
-        discord.channel.send(this.cooldownEmbed()).catch(console.error);
+        discord.channel.send({ embeds: [this.cooldownEmbed()] }).catch(console.error);
         return;
       }
       cooldowns.add(this.name);
@@ -200,7 +201,7 @@ export abstract class Command {
 
   protected deleteMsg(msg?: Discord.Message, timeoutMs = 0) {
     if (!msg) return;
-    msg.delete({ timeout: timeoutMs }).catch(console.error);
+    setTimeout(() => msg.delete().catch(console.error), timeoutMs);
   }
 
   protected formatNum(num: any, format = "0,0") {

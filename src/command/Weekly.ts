@@ -31,6 +31,6 @@ export class Weekly extends Command {
         value: Time.formatDuration(Time.weeklyMule),
       }
     );
-    discord.channel.send(embed).catch(console.error);
+    discord.channel.send({ embeds: [embed] }).catch(console.error);
   }
 }

@@ -1,4 +1,5 @@
-import { Color } from "../lib";
+import { MessageEmbed } from "discord.js";
+import { Color, Discord } from "../lib";
 import { Time as MapleTime } from "../maplestory/Time";
 import { DiscordData, Command, CommandExample } from "./base";
 
@@ -8,11 +9,11 @@ export class Time extends Command {
   }
 
   public description() {
-    return "Server time and reset times (daily/weekly/invasion).";
+    return "Server time and reset times (daily/weekly).";
   }
 
   public customAliases() {
-    return ["daily", "weekly", "invasion"];
+    return ["daily", "weekly"];
   }
 
   public customExamples(): CommandExample[] {
@@ -25,10 +26,10 @@ export class Time extends Command {
   }
 
   public async continue(discord: DiscordData) {
-    discord.channel.send(this.timeEmbed()).catch(console.error);
+    discord.channel.send({ embeds: [this.timeEmbed()] }).catch(console.error);
   }
 
-  public timeEmbed() {
+  public timeEmbed(): MessageEmbed {
     const embed = this.embed();
     const serverTime = MapleTime.time;
     embed.setTitle(serverTime.format("h:mm A"));
@@ -46,10 +47,6 @@ export class Time extends Command {
       {
         name: "Guild and Dojo reset in",
         value: MapleTime.formatDuration(MapleTime.weeklyMule),
-      },
-      {
-        name: "Kritias Invasion in",
-        value: MapleTime.formatDuration(MapleTime.invasion),
       }
     );
     return embed;

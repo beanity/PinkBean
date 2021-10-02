@@ -29,7 +29,7 @@ export class Ping extends Command {
       { name: "Ping", value: `${ping} ms`, inline: true },
       { name: "Uptime", value: uptime, inline: true }
     );
-    const sent = await discord.channel.send(embed);
+    const sent = await discord.channel.send({ embeds: [embed] });
     const secs = Math.abs(
       (discord.message.createdTimestamp - sent.createdTimestamp) / 1000
     );

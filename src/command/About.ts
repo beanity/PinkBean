@@ -22,7 +22,7 @@ export class About extends Command {
 
   public async continue(discord: DiscordData) {
     const fields = await this.getFields(discord.client);
-    const bot = discord.client.user?.username;
+    const bot = discord.client.user?.username || '';
 
     const embed = this.embed();
     embed.setAuthor(bot, "", "https://pinkbean.xyz/");
@@ -30,7 +30,7 @@ export class About extends Command {
       `${bot} is a project that we made to give back to the community. Thanks for all the love and support!`
     );
     embed.addFields(fields);
-    await discord.channel.send(embed);
+    await discord.channel.send({ embeds: [embed] });
   }
 
   private async getFields(
@@ -39,7 +39,7 @@ export class About extends Command {
     const devIds = env.devs.map((id) => `<@${id}>`).join(", ");
     const [libVersion] =
       /[\d.]+/.exec(project.dependencies["discord.js"]) || [];
-    const libUrl = "https://discord.js.org/#/docs/main/stable";
+    const libUrl = "https://discord.js.org/#/docs/main/stable/general/welcome";
     const fields: Discord.EmbedFieldData[] = [
       { name: "Version", value: project.version, inline: true },
       {
@@ -54,17 +54,17 @@ export class About extends Command {
       },
       {
         name: "Guilds",
-        value: await this.getGuildTotal(client),
+        value: (await this.getGuildTotal(client)).toString(),
         inline: true,
       },
       {
         name: "Users",
-        value: await this.getUserTotal(client),
+        value: (await this.getUserTotal(client)).toString(),
         inline: true,
       },
       {
         name: "Channels",
-        value: await this.getChannelTotal(client),
+        value: (await this.getChannelTotal(client)).toString(),
         inline: true,
       },
       {
@@ -88,25 +88,25 @@ export class About extends Command {
 
   private async getGuildTotal(client: Discord.Client) {
     if (!client.shard) return client.guilds.cache.size;
-    const sizes: number[] = await client.shard.fetchClientValues(
+    const sizes: number[] = <number[]>(await client.shard.fetchClientValues(
       "guilds.cache.size"
-    );
+    ));
     return this.sum(sizes);
   }
 
   private async getChannelTotal(client: Discord.Client) {
     if (!client.shard) return client.channels.cache.size;
-    const sizes: number[] = await client.shard.fetchClientValues(
+    const sizes: number[] = <number[]>(await client.shard.fetchClientValues(
       "channels.cache.size"
-    );
+    ));
     return this.sum(sizes);
   }
 
   private async getUserTotal(client: Discord.Client) {
     if (!client.shard) return client.users.cache.size;
-    const sizes: number[] = await client.shard.fetchClientValues(
+    const sizes: number[] = <number[]>(await client.shard.fetchClientValues(
       "users.cache.size"
-    );
+    ));
     return this.sum(sizes);
   }
 

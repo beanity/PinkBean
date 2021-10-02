@@ -1,16 +1,15 @@
-FROM node:alpine AS base
-RUN apk update && apk upgrade && apk add --no-cache \
-  git \
-  python \
-  build-base \
-  make \
-  libtool \
-  autoconf \
-  automake \
-  ffmpeg
-RUN npm install -g node-gyp
+# FROM node:alpine AS base
+# RUN apk update && apk upgrade && apk add --no-cache \
+#   git \
+#   python \
+#   build-base \
+#   make \
+#   libtool \
+#   autoconf \
+#   automake
+# RUN npm install -g node-gyp
 
-FROM Base AS dev
+FROM node:latest AS dev
 WORKDIR /usr/app
 COPY package* ./
 # RUN npm install --production && cp -r node_modules /tmp/node_modules
